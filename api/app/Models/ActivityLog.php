@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ActivityLog extends Model
 {
     protected $fillable = [
-        'pet_id', 'activity_type_id', 'user_id', 'value', 'started_at', 'ended_at', 'notes'
+        'pet_id', 'activity_type_id', 'feeding_plan_slot_id', 'user_id', 'value', 'started_at', 'ended_at', 'notes'
     ];
 
     protected $casts = [
@@ -28,5 +28,10 @@ class ActivityLog extends Model
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function feedingPlanSlot(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(FeedingPlanSlot::class);
     }
 }

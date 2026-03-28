@@ -1,30 +1,36 @@
 <template>
-  <div class="h-[100dvh] flex flex-col bg-sand-100 text-earth-900 pb-[calc(env(safe-area-inset-bottom)+80px)] overflow-hidden font-nunito">
+  <div class="h-[100dvh] flex flex-col bg-app-cream text-app-brown pb-[calc(env(safe-area-inset-bottom)+80px)] overflow-hidden font-nunito">
     <!-- Top Bar -->
-    <header class="flex items-center justify-between px-4 sm:px-6 pt-10 pb-4 z-10 sticky top-0">
+    <header class="flex items-center justify-between px-4 sm:px-6 pt-10 pb-4 z-10 sticky top-0 bg-app-cream/95 backdrop-blur-sm">
       <div class="flex flex-col">
-        <h1 class="text-3xl font-extrabold tracking-tight">Hi {{ userFirstName }}</h1>
-        <p class="text-sm font-bold text-earth-800/60">{{ householdStore.activeHousehold?.name || 'Dein Haushalt' }}</p>
+        <h1 class="text-3xl font-extrabold tracking-tight text-app-brown">Hi {{ userFirstName }}</h1>
+        <p class="text-sm font-bold text-app-muted">{{ householdStore.activeHousehold?.name || 'Dein Haushalt' }}</p>
       </div>
-      <button @click="openSettings" class="relative hover:opacity-80 transition-opacity">
-        <div class="w-14 h-14 rounded-full overflow-hidden bg-sand-200 flex items-center justify-center border-2 border-[#DBCB9E] shadow-sm">
-          <UserIcon v-if="!userAvatar" class="w-7 h-7 text-earth-400/50" />
-          <img v-else :src="userAvatar" class="w-full h-full object-cover" />
+      <button type="button" class="relative hover:opacity-80 transition-opacity" @click="openSettings">
+        <div class="w-14 h-14 rounded-full overflow-hidden bg-app-tan/60 flex items-center justify-center border-2 border-app-tan shadow-sm">
+          <UserIcon v-if="!userAvatar" class="w-7 h-7 text-app-accent/70" />
+          <img v-else :src="userAvatar" class="w-full h-full object-cover" alt="">
         </div>
       </button>
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto px-4 sm:px-6 py-6 scroll-smooth">
+    <main class="flex-1 overflow-y-auto py-2 scroll-smooth">
       <slot />
     </main>
 
     <!-- Bottom Navigation Bar -->
-    <nav class="fixed bottom-0 left-0 w-full bg-white z-20">
+    <nav class="fixed bottom-0 left-0 w-full bg-white z-20 border-t border-app-tan/50">
       <div class="flex justify-around items-center h-[80px] px-2 pb-[env(safe-area-inset-bottom)]">
-        <NuxtLink v-for="tab in tabs" :key="tab.name" :to="tab.to" class="flex flex-col items-center justify-center w-full h-full space-y-1 text-sand-200 nav-link transition-colors" active-class="text-earth-400 font-bold">
-          <component :is="tab.icon" class="w-8 h-8" :class="{'text-earth-400' : isRouteActive(tab.to)}" />
-          <span class="text-[11px]" :class="isRouteActive(tab.to) ? 'text-earth-400 font-extrabold' : 'text-sand-200 font-bold'">{{ tab.name }}</span>
+        <NuxtLink
+          v-for="tab in tabs"
+          :key="tab.name"
+          :to="tab.to"
+          class="flex flex-col items-center justify-center w-full h-full space-y-1 text-app-muted nav-link transition-colors"
+          active-class="text-app-accent font-bold"
+        >
+          <component :is="tab.icon" class="w-8 h-8" :class="{ 'text-app-accent': isRouteActive(tab.to) }" />
+          <span class="text-[11px]" :class="isRouteActive(tab.to) ? 'text-app-accent font-extrabold' : 'text-app-muted font-bold'">{{ tab.name }}</span>
         </NuxtLink>
       </div>
     </nav>

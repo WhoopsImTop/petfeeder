@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
+use App\Models\Household;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -27,9 +28,12 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        $household = Household::create(['name' => 'Mein Haushalt']);
+        $household->users()->attach($user->id, ['role' => 'admin']);
+
         return response()->json([
             'access_token' => $user->createToken('api_token')->plainTextToken,
-            'user' => $user,
+            'user' => $user->load('households'),
         ], 201);
     }
 

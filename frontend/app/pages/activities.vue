@@ -1,18 +1,18 @@
 <template>
-  <div class="space-y-6 pb-24 font-nunito px-4 sm:px-6 pt-4">
+  <div class="space-y-6 pb-24 font-nunito px-4 sm:px-6 pt-4 bg-app-cream min-h-screen">
     <div class="flex items-center justify-between mb-4">
       <div>
-        <h1 class="text-3xl font-extrabold text-earth-900 tracking-tight">Aktivitäten</h1>
-        <p class="text-sand-200 font-bold text-sm mt-1">Was bisher geschah...</p>
+        <h1 class="text-3xl font-extrabold text-app-brown tracking-tight">Aktivitäten</h1>
+        <p class="text-app-muted font-bold text-sm mt-1">Fütterung pro Woche</p>
       </div>
       <div class="flex gap-2">
-        <button @click="openTypeModal" class="w-12 h-12 rounded-[18px] bg-sand-50 text-sand-200 flex items-center justify-center shadow-sm hover:bg-sand-100 hover:text-earth-400 transition-colors shrink-0">
+        <button type="button" class="w-12 h-12 rounded-[18px] bg-white text-app-muted border border-app-tan/30 flex items-center justify-center shadow-sm hover:bg-app-cream transition-colors shrink-0" @click="openTypeModal">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
-        <button @click="openAddModal" class="w-12 h-12 rounded-[18px] bg-earth-400 text-white flex items-center justify-center shadow-md hover:bg-earth-500 transition-colors shrink-0">
+        <button type="button" class="w-12 h-12 rounded-[18px] bg-app-sage text-white flex items-center justify-center shadow-md hover:opacity-95 transition-opacity shrink-0" @click="openAddModal">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -20,116 +20,85 @@
       </div>
     </div>
 
-    <div v-if="activityStore.isLoading" class="text-center py-10 text-earth-400 font-bold">
+    <div v-if="activityStore.isLoading" class="text-center py-10 text-app-accent font-bold">
       Lade Aktivitäten...
     </div>
-    
-    <div v-else-if="petStore.pets.length === 0" class="bg-sand-50 p-8 rounded-[32px] text-center border-4 border-dashed border-sand-100">
-       <p class="text-sand-200 font-bold mb-4">Bitte erstelle zuerst ein Tier.</p>
+
+    <div v-else-if="petStore.pets.length === 0" class="bg-white p-8 rounded-[32px] text-center border-2 border-dashed border-app-tan/40">
+      <p class="text-app-muted font-bold mb-4">Bitte erstelle zuerst ein Tier.</p>
     </div>
 
-    <div v-else class="space-y-4 relative mt-6">
-      
-      <!-- Pet Accordions -->
-      <div v-for="pet in petStore.pets" :key="pet.id" class="bg-white rounded-[32px] overflow-hidden shadow-soft mb-4">
-        <div @click="togglePet(pet.id)" class="p-5 cursor-pointer hover:bg-sand-50 transition-colors">
-           <div class="flex justify-between items-center mb-4">
-               <div class="flex items-center gap-4">
-                  <div class="w-14 h-14 bg-sand-100 rounded-full flex items-center justify-center text-3xl font-extrabold text-earth-800 shadow-inner border border-sand-50">
-                    {{ getPetInitial(pet.name) }}
-                  </div>
-                  <div>
-                     <h3 class="font-extrabold text-xl text-earth-900">{{ pet.name }}</h3>
-                     <p class="text-[13px] font-bold text-sand-200 uppercase tracking-widest mt-0.5">Wochen-Auszug</p>
-                  </div>
-               </div>
-               <div class="text-sand-200 bg-sand-100 p-2 rounded-full">
-                  <svg v-if="expandedPetId === pet.id" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
-               </div>
-           </div>
-           
-           <!-- Compact Weekly Summary for Closed state (Current Week always showing at a glance) -->
-           <div class="flex justify-between px-2 pt-2 border-t-2 border-sand-50/50" v-show="expandedPetId !== pet.id">
-              <div v-for="(day, index) in weekDays" :key="'closed'+index" class="flex flex-col items-center gap-1.5">
-                 <span class="text-[10px] uppercase font-bold text-sand-200">{{ getDayLabel(day) }}</span>
-                 <div v-if="getDayStatus(pet.id, day) === 'green'" class="w-6 h-6 rounded-full bg-leaf-400 text-white flex items-center justify-center shadow-sm">
-                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                 </div>
-                 <div v-else-if="getDayStatus(pet.id, day) === 'orange'" class="w-6 h-6 rounded-full bg-orange-400 text-white flex items-center justify-center shadow-sm">
-                   <span class="font-extrabold text-sm leading-none mt-[-2px]">-</span>
-                 </div>
-                 <div v-else-if="getDayStatus(pet.id, day) === 'gray'" class="w-6 h-6 rounded-full bg-sand-200 flex items-center justify-center shadow-inner">
-                   <span class="w-2 h-2 rounded-full bg-sand-300"></span>
-                 </div>
-                 <div v-else class="w-6 h-6 rounded-full border-2 border-dashed border-sand-100 flex items-center justify-center"></div>
-              </div>
-           </div>
+    <div v-else class="bg-white rounded-[32px] shadow-sm border border-app-tan/25 p-5">
+      <div class="relative mb-6">
+        <select
+          v-model="selectedPetId"
+          class="w-full appearance-none bg-app-cream/40 border-2 border-app-tan/25 rounded-[20px] px-4 py-4 pr-10 font-extrabold text-app-brown outline-none focus:border-app-accent"
+        >
+          <option v-for="pet in petStore.pets" :key="pet.id" :value="pet.id">{{ pet.name }}</option>
+        </select>
+        <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-app-muted text-sm">▾</span>
+      </div>
+
+      <div class="flex items-center justify-between bg-app-cream/50 border border-app-tan/25 rounded-[20px] p-2 mb-6">
+        <button type="button" class="p-3 text-app-accent rounded-xl hover:bg-white transition-colors" @click="prevWeek">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <button type="button" class="text-center min-w-[140px] hover:bg-white/80 p-2 rounded-xl transition-colors" @click="resetWeek">
+          <span class="block font-extrabold text-app-brown text-[15px]">Woche</span>
+          <span class="block font-bold text-app-muted text-[11px] uppercase">{{ formatWeekRange(currentWeekStart) }}</span>
+        </button>
+        <button type="button" class="p-3 text-app-accent rounded-xl hover:bg-white transition-colors" @click="nextWeek">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
+
+      <div class="flex justify-between px-1 mb-8">
+        <div v-for="(day, index) in weekDays" :key="index" class="flex flex-col items-center gap-2">
+          <span class="text-[10px] font-extrabold text-app-muted uppercase">{{ getDayLabel(day) }}</span>
+          <div v-if="getDayStatus(day) === 'green'" class="w-9 h-9 rounded-full bg-app-sage text-white flex items-center justify-center shadow-sm border-2 border-app-sage/50" title="Alles erfüllt">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+          </div>
+          <div v-else-if="getDayStatus(day) === 'orange'" class="w-9 h-9 rounded-full bg-orange-400 text-white flex items-center justify-center shadow-sm" title="Teilweise">
+            <span class="font-black text-lg leading-none">−</span>
+          </div>
+          <div v-else-if="getDayStatus(day) === 'red'" class="w-9 h-9 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm" title="Nicht gefüttert">
+            <span class="font-black text-sm">✕</span>
+          </div>
+          <div v-else class="w-9 h-9 rounded-full border-[3px] border-dashed border-app-tan/40 flex items-center justify-center" title="Kein Plan" />
         </div>
+      </div>
 
-        <div v-if="expandedPetId === pet.id" class="px-5 pb-5 pt-1 bg-gradient-to-b from-sand-50/30 to-white">
-           
-           <!-- Week Navigation -->
-           <div class="flex items-center justify-between bg-sand-50 border-2 border-sand-100/50 rounded-[20px] p-2 mb-6">
-              <button @click="prevWeek" class="p-3 text-earth-400 hover:bg-white rounded-xl transition-colors shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg></button>
-              <div class="text-center cursor-pointer min-w-[140px] hover:bg-white p-2 rounded-xl transition-colors" @click="resetWeek">
-                 <span class="block font-extrabold text-earth-900 text-[15px] tracking-tight">Woche</span>
-                 <span class="block font-bold text-earth-400 text-[11px] uppercase">{{ formatWeekRange(currentWeekStart) }}</span>
-              </div>
-              <button @click="nextWeek" class="p-3 text-earth-400 hover:bg-white rounded-xl transition-colors shadow-sm"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg></button>
-           </div>
+      <h4 class="font-extrabold text-app-muted flex items-center gap-2 text-[10px] tracking-widest uppercase mb-4">
+        <span class="flex-1 h-0.5 bg-app-tan/30 rounded-full" />
+        Details (diese Woche)
+        <span class="flex-1 h-0.5 bg-app-tan/30 rounded-full" />
+      </h4>
 
-           <!-- 7 Day Summary Circles -->
-           <div class="flex justify-between items-center mb-8 px-1">
-              <div v-for="(day, index) in weekDays" :key="index" class="flex flex-col items-center gap-2">
-                 <span class="text-xs font-bold text-sand-200" :title="day.toLocaleDateString()">{{ getDayLabel(day) }}</span>
-                 
-                 <div v-if="getDayStatus(pet.id, day) === 'green'" class="w-9 h-9 rounded-full bg-leaf-400 text-white flex items-center justify-center shadow-md border-2 border-leaf-300/30">
-                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                 </div>
-                 <div v-else-if="getDayStatus(pet.id, day) === 'orange'" class="w-9 h-9 rounded-full bg-orange-400 text-white flex items-center justify-center shadow-md border-2 border-orange-300/30" title="Teilweise erfüllt">
-                   <span class="font-extrabold text-lg leading-none mt-[-2px]">-</span>
-                 </div>
-                 <div v-else-if="getDayStatus(pet.id, day) === 'gray'" class="w-9 h-9 rounded-full bg-sand-200 flex items-center justify-center shadow-inner border-[3px] border-sand-100" title="Nicht erfüllt">
-                   <span class="w-3 h-3 rounded-full bg-sand-300"></span>
-                 </div>
-                 <div v-else class="w-9 h-9 rounded-full border-[3px] border-dashed border-sand-100 flex items-center justify-center" title="Keine Aufgaben an diesem Tag">
-                 </div>
-              </div>
-           </div>
-
-           <!-- Details List (This selected week) -->
-           <h4 class="font-extrabold text-sand-200 flex items-center gap-2 text-[10px] tracking-widest uppercase mb-4">
-              <span class="flex-1 h-0.5 bg-sand-100 rounded-full"></span>
-              Details (Diese Woche)
-              <span class="flex-1 h-0.5 bg-sand-100 rounded-full"></span>
-           </h4>
-
-           <div v-if="getActivitiesForPetAndWeek(pet.id).length === 0" class="text-center py-6 text-sand-200 font-bold text-sm bg-sand-50 rounded-[20px] border-2 border-dashed border-sand-100">
-              Es gibt keine Einträge für diese Woche.
-           </div>
-           
-           <div v-else class="space-y-3 relative">
-              <div class="absolute left-[30px] top-6 bottom-6 w-1 bg-sand-200 rounded-full z-0 opacity-20"></div>
-
-              <div v-for="act in getActivitiesForPetAndWeek(pet.id)" :key="act.id" class="flex items-center gap-3 bg-white border-2 border-sand-50 p-3 rounded-[24px] z-10 relative">
-                 <div class="w-[52px] h-[52px] bg-sand-50 rounded-[18px] flex items-center justify-center text-[28px] shrink-0 shadow-sm border border-sand-100/50">
-                    {{ act.activity_type.icon }}
-                 </div>
-                 <div class="flex-1">
-                    <span class="block font-extrabold text-earth-900 text-[15px] leading-tight">{{ act.activity_type.name }}</span>
-                    <span v-if="act.value" class="text-[12px] text-earth-400 font-extrabold bg-sand-50 px-2 py-0.5 rounded-md inline-block mt-1">Stk/Wert: {{ act.value }}</span>
-                 </div>
-                 <div class="text-right shrink-0">
-                    <span class="block font-extrabold text-earth-900 text-[13px]">{{ formatTime(act.started_at || act.created_at) }}</span>
-                    <span class="block font-bold text-sand-200 text-[11px]">{{ getDayLabel(new Date(act.started_at || act.created_at)) }}</span>
-                 </div>
-                 <button @click.stop="confirmDeleteActivity(act.id)" class="w-10 h-10 rounded-[14px] bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-400 hover:text-white transition-colors shadow-sm ml-1 shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                 </button>
-              </div>
-           </div>
-
+      <div v-if="!selectedPetId" class="text-center py-6 text-app-muted font-bold text-sm">Kein Tier gewählt.</div>
+      <div v-else-if="getActivitiesForPetAndWeek(selectedPetId).length === 0" class="text-center py-6 text-app-muted font-bold text-sm bg-app-cream/40 rounded-[20px] border-2 border-dashed border-app-tan/30">
+        Keine Einträge in dieser Woche.
+      </div>
+      <div v-else class="space-y-3 relative">
+        <div class="absolute left-[30px] top-6 bottom-6 w-1 bg-app-tan/20 rounded-full z-0" />
+        <div
+          v-for="act in getActivitiesForPetAndWeek(selectedPetId)"
+          :key="act.id"
+          class="flex items-center gap-3 bg-white border-2 border-app-tan/20 p-3 rounded-[24px] z-10 relative"
+        >
+          <div class="w-[52px] h-[52px] bg-app-cream/50 rounded-[18px] flex items-center justify-center text-[28px] shrink-0 border border-app-tan/20">
+            {{ act.activity_type.icon }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <span class="block font-extrabold text-app-brown text-[15px] leading-tight">{{ act.activity_type.name }}</span>
+            <span v-if="act.value" class="text-[12px] text-app-accent font-extrabold bg-app-cream/50 px-2 py-0.5 rounded-md inline-block mt-1">Wert: {{ act.value }}</span>
+          </div>
+          <div class="text-right shrink-0">
+            <span class="block font-extrabold text-app-brown text-[13px]">{{ formatTime(act.started_at || act.created_at) }}</span>
+            <span class="block font-bold text-app-muted text-[11px]">{{ getDayLabel(new Date(act.started_at || act.created_at)) }}</span>
+          </div>
+          <button type="button" class="w-10 h-10 rounded-[14px] bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-400 hover:text-white transition-colors shadow-sm ml-1 shrink-0" @click.stop="confirmDeleteActivity(act.id)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -216,28 +185,30 @@ import { useHouseholdStore } from '~/stores/household'
 import { useActivityStore } from '~/stores/activities'
 import { usePetStore } from '~/stores/pets'
 import { useActivityTypeStore } from '~/stores/activityTypes'
-import { useReminderStore } from '~/stores/reminders'
+import { useFeedingPlanStore } from '~/stores/feedingPlans'
 
 const householdStore = useHouseholdStore()
 const activityStore = useActivityStore()
 const petStore = usePetStore()
 const activityTypeStore = useActivityTypeStore()
-const reminderStore = useReminderStore()
+const feedingPlanStore = useFeedingPlanStore()
 
-// State for Pet Accordion
-const expandedPetId = ref(null)
+const selectedPetId = ref(null)
+const weekSummary = ref(null)
 
-function togglePet(id) {
-  if (expandedPetId.value === id) {
-    expandedPetId.value = null
-  } else {
-    expandedPetId.value = id
-  }
-}
-
-function getPetInitial(name) {
-  return name ? name.charAt(0).toUpperCase() : '🐾'
-}
+watch(
+  () => petStore.pets,
+  (pets) => {
+    if (!pets?.length) {
+      selectedPetId.value = null
+      return
+    }
+    if (!selectedPetId.value || !pets.some((p) => p.id === selectedPetId.value)) {
+      selectedPetId.value = pets[0].id
+    }
+  },
+  { immediate: true },
+)
 
 // Week Navigation State
 function getStartOfWeek(date) {
@@ -284,8 +255,8 @@ function formatWeekRange(start) {
 }
 
 function getDayLabel(date) {
-  const days = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
-  return days[date.getDay()]
+  const map = { 1: 'MO', 2: 'DI', 3: 'MI', 4: 'DO', 5: 'FR', 6: 'SA', 0: 'SO' }
+  return map[date.getDay()] || ''
 }
 
 function toYMD(date) {
@@ -294,25 +265,6 @@ function toYMD(date) {
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
-
-const activityTypeIdsByPetAndDate = computed(() => {
-  const map = new Map()
-  for (const act of activityStore.activities) {
-    const actDate = new Date(act.started_at || act.created_at)
-    if (isNaN(actDate.getTime())) continue
-
-    const ymd = toYMD(actDate)
-    const key = `${act.pet_id}:${ymd}`
-
-    let set = map.get(key)
-    if (!set) {
-      set = new Set()
-      map.set(key, set)
-    }
-    set.add(Number(act.activity_type_id))
-  }
-  return map
-})
 
 const activitiesInWeekByPet = computed(() => {
   const start = new Date(currentWeekStart.value)
@@ -344,23 +296,32 @@ const activitiesInWeekByPet = computed(() => {
   return map
 })
 
-// Daily Logic Validation (Green, Orange, Gray)
-function getDayStatus(petId, date) {
-  const petReminders = reminderStore.reminders[petId] || []
-  const activeReminders = petReminders.filter(r => r.is_active)
-  if (activeReminders.length === 0) return 'none'
-
+function getDayStatus(date) {
+  if (!weekSummary.value?.days) return 'none'
   const ymd = toYMD(new Date(date))
-  const completedTypes = activityTypeIdsByPetAndDate.value.get(`${petId}:${ymd}`) || new Set()
+  const day = weekSummary.value.days.find((d) => d.date === ymd)
+  if (!day) return 'none'
+  const exp = day.expected_slot_ids || []
+  if (exp.length === 0) return 'none'
+  const comp = day.completed_slot_ids || []
+  if (comp.length >= exp.length) return 'green'
+  if (comp.length > 0) return 'orange'
+  return 'red'
+}
 
-  let completedCount = 0
-  activeReminders.forEach(r => {
-    if (completedTypes.has(Number(r.activity_type_id))) completedCount++
-  })
-
-  if (completedCount === 0) return 'gray' // missed
-  if (completedCount === activeReminders.length) return 'green' // 100% completed
-  return 'orange' // partially completed
+async function loadWeekSummary() {
+  const hz = householdStore.activeHousehold?.id
+  const pet = selectedPetId.value
+  if (!hz || !pet) {
+    weekSummary.value = null
+    return
+  }
+  try {
+    const start = toYMD(currentWeekStart.value)
+    weekSummary.value = await feedingPlanStore.fetchFeedingWeek(hz, pet, start)
+  } catch {
+    weekSummary.value = null
+  }
 }
 
 // Per pet week detail list
@@ -368,24 +329,25 @@ function getActivitiesForPetAndWeek(petId) {
   return activitiesInWeekByPet.value.get(petId) || []
 }
 
-watch(() => householdStore.activeHousehold, async (newHz) => {
-  if (newHz?.id) {
-    const hzId = newHz.id
-    reminderStore.clearReminders()
-    
-    await Promise.all([
-      activityStore.fetchActivities(hzId),
-      activityTypeStore.fetchActivityTypes(hzId),
-      petStore.fetchPets(hzId)
-    ])
-    
-    // Auto expand the first pet
-    if (petStore.pets.length > 0) expandedPetId.value = petStore.pets[0].id
+watch(
+  () => householdStore.activeHousehold,
+  async (newHz) => {
+    if (newHz?.id) {
+      const hzId = newHz.id
+      await Promise.all([
+        activityStore.fetchActivities(hzId),
+        activityTypeStore.fetchActivityTypes(hzId),
+        petStore.fetchPets(hzId),
+        feedingPlanStore.fetchPlans(hzId),
+      ])
+    }
+  },
+  { immediate: true },
+)
 
-    // Fetch reminders for calculation
-    await Promise.all(petStore.pets.map((pet) => reminderStore.fetchReminders(hzId, pet.id)))
-  }
-}, { immediate: true })
+watch([selectedPetId, currentWeekStart, () => householdStore.activeHousehold?.id], loadWeekSummary, {
+  immediate: true,
+})
 
 function formatTime(isoString) {
   if (!isoString) return ''

@@ -27,11 +27,14 @@ export const usePetStore = defineStore('pets', () => {
 
   async function addPet(householdId: number, petData: any) {
     const config = useRuntimeConfig()
+    const isForm = typeof FormData !== 'undefined' && petData instanceof FormData
+    const headers: Record<string, string> = { ...authStore.baseHeaders }
+    if (isForm) delete headers['Content-Type']
     const data = await $fetch(`/households/${householdId}/pets`, {
       baseURL: config.public.apiBase as string,
       method: 'POST',
       body: petData,
-      headers: authStore.baseHeaders
+      headers,
     })
     await fetchPets(householdId)
     return data
@@ -39,11 +42,14 @@ export const usePetStore = defineStore('pets', () => {
 
   async function updatePet(householdId: number, petId: number, petData: any) {
     const config = useRuntimeConfig()
+    const isForm = typeof FormData !== 'undefined' && petData instanceof FormData
+    const headers: Record<string, string> = { ...authStore.baseHeaders }
+    if (isForm) delete headers['Content-Type']
     const data = await $fetch(`/households/${householdId}/pets/${petId}`, {
       baseURL: config.public.apiBase as string,
       method: 'PUT',
       body: petData,
-      headers: authStore.baseHeaders
+      headers,
     })
     await fetchPets(householdId)
     return data

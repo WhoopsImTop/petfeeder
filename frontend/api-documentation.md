@@ -121,37 +121,38 @@ Alle Routen starten mit `/households/{household}/pets`.
 
 ### Pet anlegen
 * **POST** `/households/{household}/pets`
-* **Body:**
+* **Body:** JSON **oder** `multipart/form-data` (für Bild-Upload).
+  * **JSON-Beispiel:**
   ```json
   {
       "name": "Bello",
       "species": "Dog",
       "breed": "Golden Retriever",
       "birth_date": "2020-05-10",
-      "weight": 25.5,
-      "avatar": "https://example.com/avatar.jpg"
+      "weight": 25.5
   }
   ```
+  * **Avatar:** Datei-Feld `avatar` (`image`, max. ca. 4 MB) speichert unter `storage/app/public/pets`. In der Antwort gibt es zusätzlich **`avatar_url`** (öffentliche URL), `avatar` bleibt der interne Pfad.
   *(Nur `name` ist ein Pflichtfeld. `weight` als Dezimalzahl `min:0`).*
+
+* **Antwort:** u. a. mit `feeding_plans` (inkl. `slots`), wenn die Relation geladen wird (Liste/Einzelansicht).
 
 ### Pet anzeigen, aktualisieren, löschen
 * **GET** `/households/{household}/pets/{pet}`
-* **PUT** `/households/{household}/pets/{pet}` (Gleiche Parameter wie POST, `sometimes` möglich).
+* **PUT** `/households/{household}/pets/{pet}` — wie POST; bei Bild-Update ebenfalls `multipart/form-data` mit `avatar` möglich.
 * **DELETE** `/households/{household}/pets/{pet}`
 
 ---
 
 ## 4. Activity Logs (Tracking)
 
-Aktuell unterstützen wir das Auflisten und Erstellen von Activity Logs. Wenn ein Log erstellt wird, bekommen andere Mitglieder via WebPush eine Info.
+Beim Erstellen von Logs erhalten andere Haushaltsmitglieder optional WebPush-Benachrichtigungen.
 
 ### Logs abrufen
 * **GET** `/households/{household}/activity-logs`
 * **Query-Parameter (optional):**
   * `pet_id=1`
   * `activity_type_id=2`
-  * `from=2026-03-01`
-  * `to=2026-03-10`
 
 ### Log/Aktion erstellen
 * **POST** `/households/{household}/activity-logs`
@@ -160,46 +161,124 @@ Aktuell unterstützen wir das Auflisten und Erstellen von Activity Logs. Wenn ei
   {
       "pet_id": 1,
       "activity_type_id": 2,
+      "feeding_plan_slot_id": 5,
       "started_at": "2026-03-19 08:00:00",
       "ended_at": "2026-03-19 08:05:00",
-      "value": 200
+      "value": 200,
+      "notes": null
   }
   ```
-  *(Bei "Fast Actions", z.B. nur Füttern angetippt, reicht `pet_id` und `activity_type_id` - der Rest ist nullable).*
+  * `feeding_plan_slot_id` ist **optional**; soll bei Abhaken einer geplanten Fütterung gesetzt werden (Kalender, Skip-Logik für Erinnerungen).
+  * *(Bei Schnellaktionen reichen oft `pet_id`, `activity_type_id` und `started_at`.)*
 
----
-
-## 5. Reminders (Erinnerungen)
-
-Wiederkehrende Erinnerungen (mit Cronjob Backend geprüft) hängen an einem Pet und triggern WebPush Benachrichtigungen an den gesamten Haushalt. Alle Routen starten mit `/households/{household}/pets/{pet}/reminders`.
-
-### Reminders für ein Pet abrufen
-* **GET** `/households/{household}/pets/{pet}/reminders`
-
-### Reminder erstellen
-* **POST** `/households/{household}/pets/{pet}/reminders`
+### Mehrere Tiere gleichzeitig (Bulk)
+* **POST** `/households/{household}/activity-logs/bulk`
 * **Body:**
   ```json
   {
-      "activity_type_id": 1,
-      "title": "Morgen-Fütterung",
-      "time": "08:00",
-      "frequency": "daily",
-      "is_active": true
+      "pet_ids": [1, 2],
+      "activity_type_id": 2,
+      "feeding_plan_slot_id": 5,
+      "started_at": "2026-03-19 08:00:00",
+      "value": null,
+      "notes": null
   }
   ```
-  *(Erlaubte frequencies: `daily`, `weekly`, `monthly`, `custom`. `time` muss im Format `H:i` sein).*
+  * Erzeugt pro `pet_id` einen eigenen Log-Eintrag.
 
-### Reminder anzeigen, aktualisieren, löschen
-* **GET** `/households/{household}/pets/{pet}/reminders/{reminder}`
-* **PUT** `/households/{household}/pets/{pet}/reminders/{reminder}` (Gleiche Body-Felder wie POST).
-* **DELETE** `/households/{household}/pets/{pet}/reminders/{reminder}`
+### Log löschen
+* **DELETE** `/households/{household}/activity-logs/{activityLog}`
 
 ---
 
-## 6. Web Push Subscriptions
+## 5. Feeding Plans (Futterpläne)
 
-Endpunkt, um die Berechtigung aus dem Browser (PWA) im Backend zu speichern, damit der User WebPush-Benachrichtigungen (ActivityLog Infos, Reminder) erhält.
+Futterpläne gehören zum Haushalt. Ein Plan hat **mehrere Slots** (Uhrzeit, Wochentage, Aktivitätstyp). Über die Pivot-Tabelle **`feeding_plan_pet`** ist jedes Tier **höchstens einem** Plan zugeordnet (gemeinsamer Plan für viele Tiere oder ein Plan nur für ein Tier).
+
+**Wochentage (`weekdays`):** ISO **1 = Montag … 7 = Sonntag**.
+
+Der Scheduler (`php artisan app:send-reminders`, minütlich) versendet WebPush, wenn ein aktiver Slot zur aktuellen Uhrzeit fällt und der Wochentag passt. Wurde die Fütterung für alle betroffenen Tiere **vor** der Slot-Zeit bereits protokolliert, entfällt die Benachrichtigung.
+
+### Pläne auflisten
+* **GET** `/households/{household}/feeding-plans`  
+  *(inkl. `slots` mit `activity_type`, `pets`.)*
+
+### Plan anlegen
+* **POST** `/households/{household}/feeding-plans`
+* **Body:**
+  ```json
+  {
+      "name": "Futterplan Katzen",
+      "pet_ids": [1, 2],
+      "slots": [
+          {
+              "activity_type_id": 1,
+              "time": "08:00",
+              "weekdays": [1, 2, 3, 4, 5, 6, 7],
+              "title": "Morgens",
+              "is_active": true
+          }
+      ]
+  }
+  ```
+  * `time` im Format **`H:i`**. `slots` kann leer sein; `weekdays` mindestens ein Eintrag.
+
+### Plan anzeigen, aktualisieren, löschen
+* **GET** `/households/{household}/feeding-plans/{feeding_plan}`
+* **PUT** `/households/{household}/feeding-plans/{feeding_plan}`
+  * Wie POST; bestehende Slots mit **`id`** mitsenden, neue ohne `id`. Slots, deren `id` fehlt, werden entfernt (Full-Sync der Slot-Liste).
+* **DELETE** `/households/{household}/feeding-plans/{feeding_plan}`
+
+---
+
+## 6. Feeding Week (Kalender-Auszug pro Tier)
+
+Liefert für eine Kalenderwoche (Montag als Start) pro Tag die **erwarteten** Slot-IDs und die **als erledigt gewerteten** Slot-IDs (über `feeding_plan_slot_id` in den Logs, mit Fallback für ältere Einträge ohne Slot-ID).
+
+* **GET** `/households/{household}/pets/{pet}/feeding-week`
+* **Query (optional):** `start=2026-03-24` (beliebiges Datum in der Woche; Backend normalisiert auf Montag dieser Woche).
+
+**Response (Beispiel):**
+```json
+{
+    "week_start": "2026-03-24",
+    "days": [
+        {
+            "date": "2026-03-24",
+            "expected_slot_ids": [1, 2],
+            "completed_slot_ids": [1]
+        }
+    ]
+}
+```
+
+---
+
+## 7. Activity Types (Aktivitätsarten)
+
+Pro Haushalt definierbare Typen (Name, Icon, Flags). Nested unter dem Haushalt.
+
+* **GET** `/households/{household}/activity-types`
+* **POST** `/households/{household}/activity-types`
+* **Body (POST):**
+  ```json
+  {
+      "name": "Füttern",
+      "type": "value",
+      "icon": "🍖",
+      "is_fast_action": true
+  }
+  ```
+  * `type`: einer von `boolean`, `value`, `timer`.
+* **GET** `/households/{household}/activity-types/{activity_type}`
+* **PUT** `/households/{household}/activity-types/{activity_type}` — gleiche Felder wie POST, meist `sometimes`.
+* **DELETE** `/households/{household}/activity-types/{activity_type}`
+
+---
+
+## 8. Web Push Subscriptions
+
+Endpunkt, um die Berechtigung aus dem Browser (PWA) im Backend zu speichern, damit der User WebPush-Benachrichtigungen erhält (**neue Aktivitäts-Logs**, **fällige Futterplan-Slots**).
 
 ### Subscription speichern
 Dieser Endpunkt nimmt den Standard-Payload aus der JavaScript `PushSubscription.toJSON()` Methode entgegen.

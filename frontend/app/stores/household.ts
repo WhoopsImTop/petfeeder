@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCookie, useRuntimeConfig } from '#imports'
 import { useAuthStore } from './auth'
 
@@ -9,17 +9,25 @@ export const useHouseholdStore = defineStore('household', () => {
 
   const households = computed(() => authStore.households)
   const activeHouseholdDetails = ref<any>(null)
-  
+
+  watch(
+    households,
+    (list) => {
+      if (!list?.length) return
+      const id = activeHouseholdIdCookie.value
+      const valid = id != null && id !== '' && list.some((h: any) => h.id == id)
+      if (!valid) activeHouseholdIdCookie.value = list[0].id
+    },
+    { immediate: true, deep: true }
+  )
+
   const activeHousehold = computed(() => {
-    if (!households.value || households.value.length === 0) return null
-    if (activeHouseholdIdCookie.value) {
+    if (!households.value?.length) return null
+    if (activeHouseholdIdCookie.value != null && activeHouseholdIdCookie.value !== '') {
       const found = households.value.find((h: any) => h.id == activeHouseholdIdCookie.value)
       if (found) return found
     }
-    // Default to first if none matched
-    const defaultHz = households.value[0]
-    activeHouseholdIdCookie.value = defaultHz.id
-    return defaultHz
+    return households.value[0]
   })
 
   async function setActiveHousehold(id: number) {

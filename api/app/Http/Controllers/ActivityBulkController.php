@@ -23,6 +23,7 @@ class ActivityBulkController extends Controller
             $activityLog = ActivityLog::create([
                 'pet_id' => $petId,
                 'activity_type_id' => $activityTypeId,
+                'feeding_plan_slot_id' => $validated['feeding_plan_slot_id'] ?? null,
                 'user_id' => $request->user()->id,
                 'value' => $validated['value'] ?? null,
                 'started_at' => $startedAt,

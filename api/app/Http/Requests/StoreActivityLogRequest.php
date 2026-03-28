@@ -41,6 +41,11 @@ class StoreActivityLogRequest extends FormRequest
             'started_at' => 'required|date',
             'ended_at' => 'nullable|date|after_or_equal:started_at',
             'notes' => 'nullable|string',
+            'feeding_plan_slot_id' => [
+                'nullable',
+                'integer',
+                \Illuminate\Validation\Rule::exists('feeding_plan_slots', 'id'),
+            ],
         ];
     }
 }

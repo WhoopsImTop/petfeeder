@@ -23,13 +23,16 @@ class StorePetRequest extends FormRequest
      */
     public function rules(): array
     {
+        $avatar = $this->hasFile('avatar')
+            ? ['avatar' => ['nullable', 'image', 'max:4096']]
+            : ['avatar' => ['nullable', 'string', 'max:2048']];
+
         return [
             'name' => 'required|string|max:255',
             'species' => 'nullable|string|max:255',
             'breed' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
             'weight' => 'nullable|numeric|min:0',
-            'avatar' => 'nullable|string|url',
-        ];
+        ] + $avatar;
     }
 }

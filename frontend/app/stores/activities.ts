@@ -46,6 +46,7 @@ export const useActivityStore = defineStore('activities', () => {
       value?: string | null
       ended_at?: string | null
       notes?: string | null
+      feeding_plan_slot_id?: number | null
     }
   ) {
     const config = useRuntimeConfig()

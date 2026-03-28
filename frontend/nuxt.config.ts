@@ -2,6 +2,7 @@
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
+  ssr: false,
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   css: ['./app/assets/css/main.css'],
@@ -56,7 +57,11 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.API_PROD_URL || 'http://localhost:3001/api'
+      apiBase:
+        process.env.NUXT_PUBLIC_API_BASE ||
+        process.env.API_URL ||
+        process.env.API_PROD_URL ||
+        '',
     }
   },
   vite: {

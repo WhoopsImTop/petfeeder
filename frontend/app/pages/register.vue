@@ -96,6 +96,8 @@ const handleRegister = async () => {
     })
     if (authStore.isAuthenticated) {
       router.push('/')
+    } else {
+      error.value = 'Registrierung unvollständig. Bitte erneut versuchen.'
     }
   } catch (err) {
     error.value = err.data?.message || 'Ein Fehler ist bei der Registrierung aufgetreten.'

@@ -4,14 +4,21 @@
   --color-sand-50: #F6ECD5;
   --color-sand-100: #EBE3CD;
   --color-sand-200: #E5D5AE;
-  
+
   --color-earth-400: #9C7754;
   --color-earth-500: #89603D;
   --color-earth-800: #4A3D34;
   --color-earth-900: #2C2A24;
-  
+
   --color-leaf-400: #8AAB61;
   --color-leaf-500: #769651;
+
+  --color-app-cream: #e8dcc2;
+  --color-app-tan: #d2c5a8;
+  --color-app-brown: #2c2a24;
+  --color-app-accent: #7e6d4e;
+  --color-app-muted: #8a8274;
+  --color-app-sage: #8caf6d;
 
   --font-nunito: 'Nunito', sans-serif;
   --font-sans: 'Nunito', sans-serif;
@@ -20,5 +27,5 @@
 }
 
 html, body {
-  @apply bg-sand-100 text-earth-900 antialiased overscroll-none font-nunito;
+  @apply bg-app-cream text-app-brown antialiased overscroll-none font-nunito;
 }

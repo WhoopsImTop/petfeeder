@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6 relative pb-24 font-nunito bg-sand-100 min-h-screen">
+  <div class="space-y-6 relative pb-24 font-nunito bg-app-cream min-h-screen">
     
     <!-- Slider View -->
     <div class="w-full overflow-hidden mt-8">
@@ -18,8 +18,8 @@
           v-for="pet in petStore.pets" 
           :key="pet.id" 
           :pet="pet" 
-          last-action-text="🍖 Gefüttert am 22.03.2026 um 07:30 Uhr"
-          @edit="openEditModal" 
+          :last-action-text="lastFeedingText(pet.id)"
+          @edit="goToPetEdit" 
           @action="openActionModal" 
         />
 
@@ -141,9 +141,9 @@
       </div>
     </BottomDrawer>
     
-    <!-- Modal for Add/Edit Pet -->
+    <!-- Modal: Neues Tier -->
     <BottomDrawer v-model="isModalOpen">
-      <h2 class="text-2xl font-extrabold text-earth-900 tracking-tight leading-tight mb-8 mt-4">{{ isEditing ? 'Tier bearbeiten' : 'Neues Tier' }}</h2>
+      <h2 class="text-2xl font-extrabold text-earth-900 tracking-tight leading-tight mb-8 mt-4">Neues Tier</h2>
       
       <form @submit.prevent="savePet" class="space-y-5 overflow-y-auto overscroll-contain touch-pan-y hide-scrollbar pr-1 pb-4 max-h-[min(72vh,calc(90dvh-9rem))]">
         <div>
@@ -198,11 +198,6 @@
             <span v-else>Speichern</span>
           </button>
         </div>
-        <div v-if="isEditing" class="pt-3 pb-2 text-center">
-            <button type="button" @click="deleteActivePet" class="text-red-400/80 text-xs font-extrabold uppercase tracking-widest hover:text-red-500 transition-colors">
-                Tier Löschen
-            </button>
-        </div>
       </form>
     </BottomDrawer>
     
@@ -229,7 +224,7 @@ import { useRouter } from 'vue-router'
 import { useHouseholdStore } from '~/stores/household'
 import { usePetStore } from '~/stores/pets'
 import { useActivityTypeStore } from '~/stores/activityTypes'
-import { useReminderStore } from '~/stores/reminders'
+import { useFeedingPlanStore } from '~/stores/feedingPlans'
 import { useActivityStore } from '~/stores/activities'
 import { usePetActions } from '~/composables/usePetActions'
 import { getPetEmoji } from '~/utils/formatters'
@@ -238,7 +233,7 @@ const router = useRouter()
 const householdStore = useHouseholdStore()
 const petStore = usePetStore()
 const activityTypeStore = useActivityTypeStore()
-const reminderStore = useReminderStore()
+const feedingPlanStore = useFeedingPlanStore()
 const activityStore = useActivityStore()
 const { getActionsForPet, saveActions } = usePetActions()
 
@@ -247,7 +242,6 @@ const isModalOpen = ref(false)
 const isTaskModalOpen = ref(false)
 const isActionModalOpen = ref(false)
 const activePet = ref(null)
-const isEditing = ref(false)
 const isSaving = ref(false)
 const petForm = ref({ id: null, name: '', species: 'Dog', breed: '', birth_date: '', weight: null, actions: [] })
 const taskModalData = ref(null)
@@ -308,55 +302,79 @@ function hideTaskForTodayFromDrawer() {
   closeTaskModal()
 }
 
-// Computed Tasks for Today based on Reminders
-const todayTasks = computed(() => {
-  const map = {}
-  
+function isoWeekday() {
+  const j = new Date().getDay()
+  return j === 0 ? 7 : j
+}
+
+function isFeedingLog(log) {
+  const name = (log.activity_type?.name || '').toLowerCase()
+  return /fütter|futter|feed|essen|meal|katzen|hunde/.test(name)
+}
+
+function lastFeedingText(petId) {
+  const list = activityStore.activities
+    .filter((a) => a.pet_id === petId && isFeedingLog(a))
+    .sort((a, b) => new Date(b.started_at || b.created_at).getTime() - new Date(a.started_at || a.created_at).getTime())
+  const log = list[0]
+  if (!log) return ''
+  const d = new Date(log.started_at || log.created_at)
+  return `🍖 Gefüttert am ${d.toLocaleDateString('de-DE')} um ${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
+}
+
+function petCompletedSlotToday(petId, slot) {
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
-
-  // Precompute for faster task generation.
-  const petsById = new Map(petStore.pets.map((p) => [p.id, p]))
-  const completedActivityTypeIdsByPet = new Set()
-
   for (const act of activityStore.activities) {
+    if (act.pet_id !== petId) continue
     const actDate = new Date(act.started_at || act.created_at)
-    if (actDate >= todayStart) {
-      completedActivityTypeIdsByPet.add(`${act.pet_id}:${act.activity_type_id}`)
+    if (actDate < todayStart) continue
+    if (act.feeding_plan_slot_id === slot.id) return true
+    if (!act.feeding_plan_slot_id && act.activity_type_id === slot.activity_type_id) return true
+  }
+  return false
+}
+
+// Aufgaben für heute aus Futterplan-Slots (ISO-Wochentag, aktiv)
+const todayTasks = computed(() => {
+  const map = {}
+  const dow = isoWeekday()
+  const petsById = new Map(petStore.pets.map((p) => [p.id, p]))
+
+  for (const plan of feedingPlanStore.plans) {
+    const slots = plan.slots || []
+    for (const slot of slots) {
+      if (slot.is_active === false) continue
+      const w = slot.weekdays || []
+      if (!w.includes(dow)) continue
+
+      const key = `slot:${slot.id}`
+      if (!map[key]) {
+        const timeRaw = slot.time || ''
+        const timeShort = typeof timeRaw === 'string' && timeRaw.length >= 5 ? timeRaw.slice(0, 5) : String(timeRaw)
+        map[key] = {
+          key,
+          title: slot.title || slot.activity_type?.name || 'Füttern',
+          time: timeShort,
+          icon: slot.activity_type?.icon || '🍖',
+          activity_type_id: slot.activity_type_id,
+          feeding_plan_slot_id: slot.id,
+          pets: [],
+        }
+      }
+
+      for (const pRow of plan.pets || []) {
+        const p = petsById.get(pRow.id)
+        if (!p) continue
+        if (!petCompletedSlotToday(p.id, slot)) {
+          map[key].pets.push({ pet: p, slotId: slot.id })
+        }
+      }
     }
   }
-  
-  Object.keys(reminderStore.reminders).forEach(petId => {
-    const petReminders = reminderStore.reminders[petId] || []
-    petReminders.forEach(rem => {
-      const key = rem.reminder_group_id
-        ? `g:${rem.reminder_group_id}`
-        : `${rem.title}_${rem.time}`
-      if (!map[key]) {
-        map[key] = {
-           key,
-           title: rem.title,
-           time: rem.time,
-           icon: rem.activity_type?.icon || '⏰',
-           activity_type_id: rem.activity_type_id,
-           reminder_group_id: rem.reminder_group_id,
-           isCompleted: false,
-           pets: []
-        }
-      }
-      const p = petsById.get(parseInt(petId))
-      if (p) {
-        const hasActivityToday = completedActivityTypeIdsByPet.has(`${p.id}:${rem.activity_type_id}`)
-        if (!hasActivityToday) {
-          map[key].pets.push({ pet: p, reminderId: rem.id })
-        }
-      }
-    })
-  })
-  
-  // Only return tasks that have at least one pet remaining to do the action
+
   return Object.values(map)
-    .filter(group => group.pets.length > 0)
+    .filter((group) => group.pets.length > 0)
     .sort((a, b) => a.time.localeCompare(b.time))
     .map((group) => {
       const n = group.pets.length
@@ -374,22 +392,17 @@ const hiddenTasksCount = computed(() => {
   return [...dismissedTaskKeys.value].filter((k) => active.has(k)).length
 })
 
-// Load pets, activities, and reminders whenever the active household is ready or changes
 async function fetchAllData(hzId) {
   if (!hzId) return
 
-  reminderStore.clearReminders()
+  feedingPlanStore.clearPlans()
 
   await Promise.all([
     petStore.fetchPets(hzId),
     activityTypeStore.fetchActivityTypes(hzId),
-    activityStore.fetchActivities(hzId)
+    activityStore.fetchActivities(hzId),
+    feedingPlanStore.fetchPlans(hzId),
   ])
-  
-  // Fetch reminders for all pets to populate tasks
-  await Promise.all(
-    petStore.pets.map((pet) => reminderStore.fetchReminders(hzId, pet.id))
-  )
 }
 
 watch(() => householdStore.activeHousehold, (newHz) => {
@@ -433,14 +446,11 @@ async function triggerFastAction(actionId) {
 // Modal actions
 function openAddModal() {
   petForm.value = { id: null, name: '', species: 'Dog', breed: '', birth_date: '', weight: null, actions: [] }
-  isEditing.value = false
   isModalOpen.value = true
 }
 
-function openEditModal(pet) {
-  petForm.value = { ...pet, weight: pet.weight ? parseFloat(pet.weight) : null, actions: [...getActionsForPet(pet.id)] }
-  isEditing.value = true
-  isModalOpen.value = true
+function goToPetEdit(pet) {
+  router.push(`/pets/${pet.id}`)
 }
 
 function closeModal() {
@@ -448,56 +458,35 @@ function closeModal() {
 }
 
 async function savePet() {
-  if (!householdStore.activeHousehold?.id) return
+  if (!householdStore.activeHousehold?.id) {
+    alert('Kein Haushalt geladen. Bitte Seite neu laden oder erneut anmelden.')
+    return
+  }
   isSaving.value = true
-  
+
   try {
     const payload = { ...petForm.value }
     const actions = [...payload.actions]
     delete payload.id
     delete payload.actions
-    if (!payload.weight) delete payload.weight;
-    
-    if (isEditing.value && petForm.value.id) {
-      const petId = petForm.value.id
-      await petStore.updatePet(householdStore.activeHousehold.id, petId, payload)
-      saveActions(petId, actions)
+    if (!payload.weight) delete payload.weight
+
+    const result = await petStore.addPet(householdStore.activeHousehold.id, payload)
+    const newPetId = result?.data?.id || result?.id
+    if (newPetId) {
+      saveActions(newPetId, actions)
     } else {
-      const result = await petStore.addPet(householdStore.activeHousehold.id, payload)
-      const newPetId = result?.data?.id || result?.id
-      if (newPetId) {
-        saveActions(newPetId, actions)
-      } else {
-        await petStore.fetchPets(householdStore.activeHousehold.id)
-        const newest = petStore.pets.sort((a,b)=>b.id-a.id)[0]
-        if (newest) saveActions(newest.id, actions)
-      }
+      await petStore.fetchPets(householdStore.activeHousehold.id)
+      const newest = petStore.pets.sort((a, b) => b.id - a.id)[0]
+      if (newest) saveActions(newest.id, actions)
     }
     closeModal()
     fetchAllData(householdStore.activeHousehold.id)
   } catch (error) {
-    console.error("Failed to save pet:", error)
-    alert("Fehler beim Speichern. Bitte Eingaben prüfen.")
+    console.error('Failed to save pet:', error)
+    alert('Fehler beim Speichern. Bitte Eingaben prüfen.')
   } finally {
     isSaving.value = false
-  }
-}
-
-async function deleteActivePet() {
-  if (!isEditing.value || !petForm.value.id || !householdStore.activeHousehold?.id) return
-  
-  if (confirm(`Möchtest du das Tier "${petForm.value.name}" wirklich löschen?`)) {
-    isSaving.value = true
-    try {
-      await petStore.deletePet(householdStore.activeHousehold.id, petForm.value.id)
-      closeModal()
-      fetchAllData(householdStore.activeHousehold.id)
-    } catch (error) {
-       console.error("Failed to delete pet:", error)
-       alert("Fehler beim Löschen des Tiers.")
-    } finally {
-      isSaving.value = false
-    }
   }
 }
 
@@ -536,7 +525,8 @@ async function saveTaskExecution() {
        pet_ids: petIds,
        activity_type_id: taskModalData.value.activity_type_id,
        started_at: localISOTime,
-       value: null
+       value: null,
+       feeding_plan_slot_id: taskModalData.value.feeding_plan_slot_id ?? null,
      })
 
      await activityStore.fetchActivities(householdStore.activeHousehold.id)

@@ -25,8 +25,8 @@ class Household extends Model
         return $this->hasMany(ActivityType::class);
     }
 
-    public function reminders(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function feedingPlans(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(Reminder::class);
+        return $this->hasMany(FeedingPlan::class);
     }
 }

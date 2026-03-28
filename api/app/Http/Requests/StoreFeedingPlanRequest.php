@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreBulkActivityLogsRequest extends FormRequest
+class StoreFeedingPlanRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,26 +19,23 @@ class StoreBulkActivityLogsRequest extends FormRequest
         $householdId = $this->route('household');
 
         return [
-            'pet_ids' => ['required', 'array', 'min:1'],
+            'name' => ['required', 'string', 'max:255'],
+            'pet_ids' => ['nullable', 'array'],
             'pet_ids.*' => [
                 'integer',
                 Rule::exists('pets', 'id')->where('household_id', $householdId),
             ],
-            'activity_type_id' => [
+            'slots' => ['nullable', 'array'],
+            'slots.*.activity_type_id' => [
                 'required',
                 'integer',
                 Rule::exists('activity_types', 'id')->where('household_id', $householdId),
             ],
-            'value' => 'nullable|string|max:255',
-            'started_at' => 'required|date',
-            'ended_at' => 'nullable|date|after_or_equal:started_at',
-            'notes' => 'nullable|string',
-            'feeding_plan_slot_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('feeding_plan_slots', 'id'),
-            ],
+            'slots.*.time' => ['required', 'date_format:H:i'],
+            'slots.*.weekdays' => ['required', 'array', 'min:1'],
+            'slots.*.weekdays.*' => ['integer', 'between:1,7'],
+            'slots.*.title' => ['nullable', 'string', 'max:255'],
+            'slots.*.is_active' => ['nullable', 'boolean'],
         ];
     }
 }
-

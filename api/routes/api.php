@@ -25,8 +25,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Nested resources
     Route::apiResource('households.pets', \App\Http\Controllers\PetController::class);
-    Route::post('households/{household}/reminders/bulk', [\App\Http\Controllers\ReminderBulkController::class, 'store']);
-    Route::apiResource('households.pets.reminders', \App\Http\Controllers\ReminderController::class);
+    Route::apiResource('households.feeding-plans', \App\Http\Controllers\FeedingPlanController::class);
+    Route::get('households/{household}/pets/{pet}/feeding-week', [\App\Http\Controllers\PetFeedingWeekController::class, 'show']);
     Route::apiResource('households.activity-types', \App\Http\Controllers\ActivityTypeController::class);
 
     Route::get('households/{household}/activity-logs', [ActivityLogController::class, 'index']);

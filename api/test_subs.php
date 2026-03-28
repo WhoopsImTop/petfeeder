@@ -1,6 +1,6 @@
 <?php
 echo "Subscriptions count: " . App\Models\PushSubscription::count() . "\n";
-echo "Reminders count: " . App\Models\Reminder::count() . "\n";
+echo "Feeding plans count: " . App\Models\FeedingPlan::count() . "\n";
 
 $user = App\Models\User::first();
 if ($user) {

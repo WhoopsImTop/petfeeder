@@ -4,8 +4,14 @@
     <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-earth-400 rounded-full z-10"></div>
     
     <div class="flex items-center gap-4 mb-4 relative z-10">
-      <div class="w-24 h-24 bg-sand-50 rounded-[20px] flex items-center justify-center text-4xl">
-        {{ getPetEmoji(pet.species) }}
+      <div class="w-24 h-24 bg-sand-50 rounded-[20px] flex items-center justify-center text-4xl overflow-hidden shrink-0">
+        <img
+          v-if="pet.avatar_url"
+          :src="pet.avatar_url"
+          :alt="pet.name"
+          class="w-full h-full object-cover"
+        >
+        <span v-else>{{ getPetEmoji(pet.species) }}</span>
       </div>
       <div class="flex-1">
         <h3 class="text-2xl font-extrabold text-earth-900 tracking-tight">{{ pet.name }} <span class="text-sm font-bold text-sand-200 ml-1 uppercase">{{ pet.breed || 'EKH' }}</span></h3>

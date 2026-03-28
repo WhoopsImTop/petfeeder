@@ -25,6 +25,28 @@ export const useAuthStore = defineStore('auth', () => {
     return headers
   })
 
+  async function ensureDefaultHousehold() {
+    if (!token.value) return
+    const list = user.value?.households
+    if (Array.isArray(list) && list.length > 0) return
+
+    const config = useRuntimeConfig()
+    const base = config.public.apiBase as string
+    if (!base) return
+
+    try {
+      await $fetch('/households', {
+        baseURL: base,
+        method: 'POST',
+        body: { name: 'Mein Haushalt' },
+        headers: baseHeaders.value,
+      })
+      await fetchUser()
+    } catch (e) {
+      console.error('ensureDefaultHousehold failed', e)
+    }
+  }
+
   async function login(credentials: Record<string, string>) {
     const config = useRuntimeConfig()
     const data: any = await $fetch('/login', {
@@ -40,6 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Sanctum token formatting sometimes includes "1|token", we just store the whole token string
       setToken(data.access_token)
       await fetchUser()
+      await ensureDefaultHousehold()
     }
   }
 
@@ -54,9 +77,11 @@ export const useAuthStore = defineStore('auth', () => {
       }
     })
     
-    if (data && data.token) {
-      setToken(data.token)
+    const accessToken = data?.access_token ?? data?.token
+    if (data && accessToken) {
+      setToken(accessToken)
       await fetchUser()
+      await ensureDefaultHousehold()
     }
   }
 
@@ -99,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     fetchUser,
+    ensureDefaultHousehold,
     logout
   }
 })
