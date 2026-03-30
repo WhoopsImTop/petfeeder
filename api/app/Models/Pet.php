@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 
 class Pet extends Model
@@ -11,7 +12,7 @@ class Pet extends Model
         'household_id', 'name', 'species', 'breed', 'birth_date', 'weight', 'avatar',
     ];
 
-    protected $appends = ['avatar_url'];
+    protected $appends = ['avatar_url', 'quick_activity_type_ids'];
 
     protected $casts = [
         'birth_date' => 'date',
@@ -30,6 +31,18 @@ class Pet extends Model
         return Storage::disk('public')->url($v);
     }
 
+    /**
+     * @return list<int>
+     */
+    public function getQuickActivityTypeIdsAttribute(): array
+    {
+        if (! $this->relationLoaded('quickActivityTypes')) {
+            return [];
+        }
+
+        return $this->quickActivityTypes->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+    }
+
     public function household(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Household::class);
@@ -43,5 +56,10 @@ class Pet extends Model
     public function feedingPlans(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(FeedingPlan::class, 'feeding_plan_pet')->withTimestamps();
+    }
+
+    public function quickActivityTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(ActivityType::class, 'pet_quick_action')->withTimestamps();
     }
 }

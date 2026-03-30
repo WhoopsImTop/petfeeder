@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\HouseholdInvitationPendingMail;
+use App\Mail\HouseholdMemberAddedMail;
+use App\Models\Household;
+use App\Models\HouseholdInvite;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-
-use App\Models\Household;
-use App\Models\User;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class HouseholdController extends Controller
 {
@@ -30,7 +35,7 @@ class HouseholdController extends Controller
         ]);
 
         $household = Household::create($validated);
-        
+
         // Attach user as admin
         $household->users()->attach($request->user()->id, ['role' => 'admin']);
 
@@ -50,49 +55,112 @@ class HouseholdController extends Controller
                     ->orWherePivot('expires_at', '>', now());
             }])
             ->findOrFail($id);
-        
+
         return response()->json($household);
     }
 
     /**
-     * Invite a user to the household via email.
+     * Einladung per E-Mail: bestehende Nutzer werden direkt hinzugefügt und benachrichtigt;
+     * unbekannte Adressen erhalten eine Einladung mit Registrierungslink.
      */
     public function invite(Request $request, string $id)
     {
         $household = $request->user()->households()->wherePivot('role', 'admin')->findOrFail($id);
 
         $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'role' => 'sometimes|string|in:admin,member,sitter',
             'expires_at' => 'nullable|date',
         ]);
 
-        $userToInvite = User::where('email', $validated['email'])->firstOrFail();
+        $emailNormalized = strtolower(trim($validated['email']));
+        $userToInvite = User::whereRaw('LOWER(email) = ?', [$emailNormalized])->first();
 
-        $existingMembership = $household->users()->where('users.id', $userToInvite->id)->first();
+        if ($userToInvite) {
+            $existingMembership = $household->users()->where('users.id', $userToInvite->id)->first();
 
-        if ($existingMembership) {
-            $existingExpiresAt = $existingMembership->pivot->expires_at;
+            if ($existingMembership) {
+                $existingExpiresAt = $existingMembership->pivot->expires_at;
 
-            // If the previous invite/membership expired, allow re-inviting by updating the pivot.
-            if ($existingExpiresAt && Carbon::parse($existingExpiresAt)->isPast()) {
-                $household->users()->updateExistingPivot($userToInvite->id, [
-                    'role' => $validated['role'] ?? 'member',
-                    'expires_at' => $validated['expires_at'] ?? null,
-                ]);
+                if ($existingExpiresAt && Carbon::parse($existingExpiresAt)->isPast()) {
+                    $household->users()->updateExistingPivot($userToInvite->id, [
+                        'role' => $validated['role'] ?? 'member',
+                        'expires_at' => $validated['expires_at'] ?? null,
+                    ]);
 
-                return response()->json(['message' => 'User invitation updated.']);
+                    try {
+                        Mail::to($userToInvite->email)->send(
+                            new HouseholdMemberAddedMail($household, $request->user(), $userToInvite)
+                        );
+                    } catch (\Throwable $e) {
+                        Log::warning('household_member_added_mail_failed', ['error' => $e->getMessage()]);
+                    }
+
+                    return response()->json(['message' => 'Einladung aktualisiert und E-Mail gesendet.']);
+                }
+
+                return response()->json(['message' => 'User is already a member.'], 400);
             }
 
-            return response()->json(['message' => 'User is already a member.'], 400);
+            $household->users()->attach($userToInvite->id, [
+                'role' => $validated['role'] ?? 'member',
+                'expires_at' => $validated['expires_at'] ?? null,
+            ]);
+
+            try {
+                Mail::to($userToInvite->email)->send(
+                    new HouseholdMemberAddedMail($household, $request->user(), $userToInvite)
+                );
+            } catch (\Throwable $e) {
+                Log::warning('household_member_added_mail_failed', ['error' => $e->getMessage()]);
+            }
+
+            return response()->json(['message' => 'User successfully invited.']);
         }
 
-        $household->users()->attach($userToInvite->id, [
+        $existingPending = HouseholdInvite::where('household_id', $household->id)
+            ->whereRaw('LOWER(email) = ?', [$emailNormalized])
+            ->whereNull('accepted_at')
+            ->first();
+
+        if ($existingPending) {
+            $existingPending->update([
+                'token' => Str::random(64),
+                'role' => $validated['role'] ?? 'member',
+                'expires_at' => $validated['expires_at'] ?? null,
+                'invited_by_user_id' => $request->user()->id,
+            ]);
+            $existingPending->refresh();
+
+            try {
+                Mail::to($existingPending->email)->send(
+                    new HouseholdInvitationPendingMail($existingPending, $household, $request->user())
+                );
+            } catch (\Throwable $e) {
+                Log::warning('household_invite_mail_failed', ['error' => $e->getMessage()]);
+            }
+
+            return response()->json(['message' => 'Einladung erneut gesendet.']);
+        }
+
+        $invite = HouseholdInvite::create([
+            'household_id' => $household->id,
+            'email' => $emailNormalized,
             'role' => $validated['role'] ?? 'member',
             'expires_at' => $validated['expires_at'] ?? null,
+            'token' => Str::random(64),
+            'invited_by_user_id' => $request->user()->id,
         ]);
 
-        return response()->json(['message' => 'User successfully invited.']);
+        try {
+            Mail::to($invite->email)->send(
+                new HouseholdInvitationPendingMail($invite, $household, $request->user())
+            );
+        } catch (\Throwable $e) {
+            Log::warning('household_invite_mail_failed', ['error' => $e->getMessage()]);
+        }
+
+        return response()->json(['message' => 'Einladung per E-Mail gesendet.']);
     }
 
     /**

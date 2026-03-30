@@ -48,7 +48,6 @@
               <span class="text-lg shrink-0">{{ slot.activity_type?.icon || '🍖' }}</span>
               <span class="font-extrabold text-app-brown">{{ slot.title || slot.activity_type?.name }}</span>
               <span class="text-app-muted font-bold text-xs ml-auto">{{ formatSlotTime(slot.time) }}</span>
-              <span class="text-[10px] font-bold text-app-muted">{{ weekdayShort(slot.weekdays) }}</span>
             </li>
           </ul>
         </div>
@@ -71,24 +70,29 @@
       <h2 class="text-lg font-extrabold text-app-brown">Tiere</h2>
       <div v-for="pet in petStore.pets" :key="pet.id" class="bg-white rounded-[32px] p-6 shadow-sm border border-app-tan/25 flex flex-col gap-4">
         <div class="flex items-center gap-4">
-          <div class="w-20 h-20 bg-app-cream rounded-[20px] flex items-center justify-center text-4xl shrink-0 overflow-hidden">
+          <button
+            type="button"
+            class="w-20 h-20 bg-app-cream rounded-[20px] flex items-center justify-center text-4xl shrink-0 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+            @click="openEditPet(pet)"
+          >
             <img v-if="pet.avatar_url" :src="pet.avatar_url" :alt="pet.name" class="w-full h-full object-cover">
             <span v-else>{{ getPetEmoji(pet.species) }}</span>
-          </div>
+          </button>
           <div class="flex-1 min-w-0">
             <h3 class="text-2xl font-extrabold text-app-brown tracking-tight">{{ pet.name }}</h3>
             <p class="text-app-muted text-sm font-bold uppercase">{{ pet.breed || '—' }}</p>
           </div>
-          <NuxtLink
-            :to="`/pets/${pet.id}`"
+          <button
+            type="button"
             class="w-12 h-12 rounded-full bg-app-cream text-app-accent flex items-center justify-center hover:bg-app-tan/30 transition-colors shrink-0"
             aria-label="Bearbeiten"
+            @click="openEditPet(pet)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
               <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.158 3.712 3.712 1.158-1.157a2.625 2.625 0 000-3.713z" />
               <path d="M19.571 7.429L15.859 3.717 3.39 16.186A2.25 2.25 0 002.25 17.778v3.472A.75.75 0 003 22h3.472a2.25 2.25 0 001.592-1.14l12.469-12.469z" />
             </svg>
-          </NuxtLink>
+          </button>
         </div>
         <div class="flex gap-2">
           <div class="flex-1 bg-app-cream/50 p-3 pl-4 rounded-[20px]">
@@ -106,6 +110,16 @@
     <BottomDrawer v-model="isModalOpen">
       <h2 class="text-2xl font-extrabold text-app-brown tracking-tight leading-tight mb-8 mt-4">Neues Tier</h2>
       <form class="space-y-5 overflow-y-auto overscroll-contain touch-pan-y hide-scrollbar pr-1 pb-4 max-h-[min(72vh,calc(90dvh-9rem))]" @submit.prevent="savePet">
+        <div class="rounded-[24px] border-2 border-app-tan/25 bg-[#FFF4E8] p-4 flex flex-col items-center gap-2">
+          <input id="new-pet-avatar" type="file" accept="image/*" class="sr-only" @change="onNewPetAvatar">
+          <label for="new-pet-avatar" class="cursor-pointer text-center w-full">
+            <div v-if="newPetAvatarPreview" class="w-24 h-24 rounded-[20px] overflow-hidden border-2 border-app-tan/20 mx-auto">
+              <img :src="newPetAvatarPreview" alt="" class="w-full h-full object-cover">
+            </div>
+            <div v-else class="w-24 h-24 rounded-[20px] bg-app-cream/80 border-2 border-dashed border-app-tan/35 mx-auto flex items-center justify-center text-3xl">📷</div>
+            <span class="block text-xs font-extrabold text-app-accent mt-2">Profilbild (optional)</span>
+          </label>
+        </div>
         <div>
           <label class="block text-xs font-bold text-app-muted uppercase tracking-widest mb-2 ml-1">Name *</label>
           <input v-model="petForm.name" required type="text" class="w-full bg-app-cream/50 border-2 border-app-tan/30 rounded-[20px] px-5 py-4 font-bold text-app-brown outline-none focus:border-app-accent" placeholder="Name deines Tiers">
@@ -146,7 +160,7 @@
             >
               <input v-model="petForm.actions" type="checkbox" :value="action.id" class="hidden">
               <span class="text-xl">{{ action.icon }}</span>
-              <span>{{ action.label }}</span>
+              <span>{{ action.name }}</span>
             </label>
           </div>
         </div>
@@ -230,20 +244,25 @@ import { getPetEmoji, getAge } from '~/utils/formatters'
 import { usePetStore } from '~/stores/pets'
 import { useActivityTypeStore } from '~/stores/activityTypes'
 import { useFeedingPlanStore } from '~/stores/feedingPlans'
-import { usePetActions } from '~/composables/usePetActions'
+import { appendQuickActionIdsToFormData, usePetActions } from '~/composables/usePetActions'
+import { usePetEditDrawerStore } from '~/stores/petEditDrawer'
 
 const householdStore = useHouseholdStore()
 const petStore = usePetStore()
 const activityTypeStore = useActivityTypeStore()
 const feedingPlanStore = useFeedingPlanStore()
-const { saveActions } = usePetActions()
+usePetActions()
+const petEditDrawer = usePetEditDrawerStore()
 
 const weekdayLabels = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' }
 
 const isModalOpen = ref(false)
+
 const isPlanModalOpen = ref(false)
 const isSaving = ref(false)
 const petForm = ref({ id: null, name: '', species: 'Dog', breed: '', birth_date: '', weight: null, actions: [] })
+const newPetAvatarFile = ref(null)
+const newPetAvatarPreview = ref('')
 
 const planForm = ref({
   id: null,
@@ -302,8 +321,21 @@ watch(() => householdStore.activeHousehold, async (newHz) => {
   ])
 }, { immediate: true })
 
+function onNewPetAvatar(e) {
+  const f = e.target.files?.[0]
+  if (!f) return
+  newPetAvatarFile.value = f
+  newPetAvatarPreview.value = URL.createObjectURL(f)
+}
+
+function openEditPet(pet) {
+  petEditDrawer.open(Number(pet.id))
+}
+
 function openAddModal() {
   petForm.value = { id: null, name: '', species: 'Cat', breed: '', birth_date: '', weight: null, actions: [] }
+  newPetAvatarFile.value = null
+  newPetAvatarPreview.value = ''
   isModalOpen.value = true
 }
 
@@ -390,18 +422,31 @@ async function savePet() {
   if (!householdStore.activeHousehold?.id) return
   isSaving.value = true
   try {
-    const payload = { ...petForm.value }
-    const actions = [...payload.actions]
-    delete payload.id
-    delete payload.actions
-    if (!payload.weight) delete payload.weight
-    const result = await petStore.addPet(householdStore.activeHousehold.id, payload)
-    const newPetId = result?.data?.id || result?.id
-    if (newPetId) saveActions(newPetId, actions)
-    else {
+    const hzId = householdStore.activeHousehold.id
+    const raw = { ...petForm.value }
+    const actions = [...raw.actions]
+    delete raw.id
+    delete raw.actions
+    if (!raw.weight) delete raw.weight
+
+    raw.quick_action_activity_type_ids = actions.map((x) => Number(x)).filter((n) => !Number.isNaN(n))
+
+    let result
+    if (newPetAvatarFile.value) {
+      const fd = new FormData()
+      fd.append('name', raw.name)
+      fd.append('species', raw.species || '')
+      if (raw.breed) fd.append('breed', raw.breed)
+      if (raw.birth_date) fd.append('birth_date', raw.birth_date)
+      if (raw.weight != null && raw.weight !== '') fd.append('weight', String(raw.weight))
+      fd.append('avatar', newPetAvatarFile.value)
+      appendQuickActionIdsToFormData(fd, raw.quick_action_activity_type_ids)
+      result = await petStore.addPet(hzId, fd)
+    } else {
+      result = await petStore.addPet(hzId, raw)
+    }
+    if (!result?.data?.id && !result?.id) {
       await petStore.fetchPets(householdStore.activeHousehold.id)
-      const newest = petStore.pets.sort((a, b) => b.id - a.id)[0]
-      if (newest) saveActions(newest.id, actions)
     }
     closeModal()
   } catch {
@@ -411,8 +456,3 @@ async function savePet() {
   }
 }
 </script>
-
-<style scoped>
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>

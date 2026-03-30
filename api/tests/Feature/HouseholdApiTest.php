@@ -1,7 +1,9 @@
 <?php
 
+use App\Mail\HouseholdMemberAddedMail;
 use App\Models\Household;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
 
 test('unauthenticated users cannot access households', function () {
     $response = $this->getJson('/api/households');
@@ -43,12 +45,16 @@ test('authorization: only admins can invite users to a household', function () {
     $household->users()->attach($admin->id, ['role' => 'admin']);
     $household->users()->attach($member->id, ['role' => 'member']);
 
+    Mail::fake();
+
     // Admin invites => success
     $responseAdmin = $this->actingAs($admin)->postJson('/api/households/' . $household->id . '/invite', [
         'email' => $strangerToInvite->email,
         'role' => 'member'
     ]);
     $responseAdmin->assertStatus(200);
+
+    Mail::assertSent(HouseholdMemberAddedMail::class);
 
     $strangerToInvite2 = User::factory()->create();
     

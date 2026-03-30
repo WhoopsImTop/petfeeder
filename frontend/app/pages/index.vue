@@ -97,32 +97,45 @@
         </div>
 
         <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y space-y-3 pr-1 hide-scrollbar px-1">
-          <button
+          <div
             v-for="petData in taskModalData.pets"
             :key="petData.pet.id"
-            type="button"
-            class="w-full flex items-center justify-between border-4 rounded-[28px] p-3 pl-4 text-left transition-colors touch-manipulation min-h-[4.5rem] active:opacity-95"
+            class="w-full flex items-stretch justify-between gap-2 border-4 rounded-[28px] p-3 pl-4 text-left transition-colors touch-manipulation min-h-[4.5rem] active:opacity-95"
             :class="taskModalData.checked[petData.pet.id] ? 'border-leaf-400 bg-leaf-50' : 'border-sand-50 bg-white'"
-            @click="taskModalData.checked[petData.pet.id] = !taskModalData.checked[petData.pet.id]"
           >
-             <div class="flex items-center gap-3 min-w-0">
-                <div class="w-12 h-12 sm:w-14 sm:h-14 bg-[#FFF9EA] rounded-[18px] shrink-0 flex items-center justify-center text-2xl sm:text-3xl">
-                   {{ getPetEmoji(petData.pet.species) }}
-                </div>
-                <div class="min-w-0">
-                  <h4 class="font-extrabold text-earth-900 text-base sm:text-[17px] leading-tight">{{ petData.pet.name }}</h4>
-                  <p class="text-[11px] font-bold text-sand-200 leading-tight mt-1">Antippen zum An- / Abwählen</p>
-                </div>
-             </div>
-             <span
-               class="w-11 h-11 sm:w-12 sm:h-12 rounded-[18px] border-[3px] flex items-center justify-center shrink-0 transition-colors pointer-events-none"
-               :class="taskModalData.checked[petData.pet.id] ? 'bg-leaf-400 border-leaf-400 text-white' : 'bg-sand-50 border-sand-100 text-transparent'"
-             >
+            <button
+              type="button"
+              class="w-12 h-12 sm:w-14 sm:h-14 bg-[#FFF9EA] rounded-[18px] shrink-0 flex items-center justify-center text-2xl sm:text-3xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+              :aria-label="`Profil von ${petData.pet.name} bearbeiten`"
+              @click="petEditDrawer.open(Number(petData.pet.id))"
+            >
+              <img
+                v-if="petData.pet.avatar_url"
+                :src="petData.pet.avatar_url"
+                :alt="petData.pet.name"
+                class="w-full h-full object-cover"
+              >
+              <span v-else>{{ getPetEmoji(petData.pet.species) }}</span>
+            </button>
+            <button
+              type="button"
+              class="flex flex-1 min-w-0 items-center justify-between gap-2 text-left py-0 pr-0"
+              @click="taskModalData.checked[petData.pet.id] = !taskModalData.checked[petData.pet.id]"
+            >
+              <div class="min-w-0">
+                <h4 class="font-extrabold text-earth-900 text-base sm:text-[17px] leading-tight">{{ petData.pet.name }}</h4>
+                <p class="text-[11px] font-bold text-sand-200 leading-tight mt-1">Antippen zum An- / Abwählen</p>
+              </div>
+              <span
+                class="w-11 h-11 sm:w-12 sm:h-12 rounded-[18px] border-[3px] flex items-center justify-center shrink-0 transition-colors pointer-events-none"
+                :class="taskModalData.checked[petData.pet.id] ? 'bg-leaf-400 border-leaf-400 text-white' : 'bg-sand-50 border-sand-100 text-transparent'"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 sm:w-8 sm:h-8">
                   <path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clip-rule="evenodd" />
                 </svg>
-             </span>
-          </button>
+              </span>
+            </button>
+          </div>
         </div>
         
         <div class="shrink-0 pt-4 mt-2 border-t-[3px] border-sand-50 space-y-3 px-1">
@@ -227,15 +240,17 @@ import { useActivityTypeStore } from '~/stores/activityTypes'
 import { useFeedingPlanStore } from '~/stores/feedingPlans'
 import { useActivityStore } from '~/stores/activities'
 import { usePetActions } from '~/composables/usePetActions'
+import { usePetEditDrawerStore } from '~/stores/petEditDrawer'
 import { getPetEmoji } from '~/utils/formatters'
 
 const router = useRouter()
 const householdStore = useHouseholdStore()
 const petStore = usePetStore()
+const petEditDrawer = usePetEditDrawerStore()
 const activityTypeStore = useActivityTypeStore()
 const feedingPlanStore = useFeedingPlanStore()
 const activityStore = useActivityStore()
-const { getActionsForPet, saveActions } = usePetActions()
+const { getActionsForPet } = usePetActions()
 
 // Modal State
 const isModalOpen = ref(false)
@@ -412,7 +427,8 @@ watch(() => householdStore.activeHousehold, (newHz) => {
 
 
 function getActivityType(id) {
-  return activityTypeStore.activityTypes.find(t => t.id === id)
+  const n = Number(id)
+  return activityTypeStore.activityTypes.find((t) => Number(t.id) === n)
 }
 
 function openActionModal(pet) {
@@ -429,8 +445,8 @@ async function triggerFastAction(actionId) {
      const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 19).replace('T', ' ')
      
      await activityStore.createActivity(householdStore.activeHousehold.id, {
-        pet_id: activePet.value.id,
-        activity_type_id: actionId,
+        pet_id: Number(activePet.value.id),
+        activity_type_id: Number(actionId),
         started_at: localISOTime,
         value: null
      })
@@ -450,7 +466,7 @@ function openAddModal() {
 }
 
 function goToPetEdit(pet) {
-  router.push(`/pets/${pet.id}`)
+  petEditDrawer.open(Number(pet.id))
 }
 
 function closeModal() {
@@ -470,15 +486,13 @@ async function savePet() {
     delete payload.id
     delete payload.actions
     if (!payload.weight) delete payload.weight
+    payload.quick_action_activity_type_ids = actions
+      .map((x) => Number(x))
+      .filter((n) => !Number.isNaN(n))
 
     const result = await petStore.addPet(householdStore.activeHousehold.id, payload)
-    const newPetId = result?.data?.id || result?.id
-    if (newPetId) {
-      saveActions(newPetId, actions)
-    } else {
+    if (!result?.data?.id && !result?.id) {
       await petStore.fetchPets(householdStore.activeHousehold.id)
-      const newest = petStore.pets.sort((a, b) => b.id - a.id)[0]
-      if (newest) saveActions(newest.id, actions)
     }
     closeModal()
     fetchAllData(householdStore.activeHousehold.id)

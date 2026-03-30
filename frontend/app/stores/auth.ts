@@ -66,7 +66,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(userData: Record<string, string>) {
+  async function register(userData: Record<string, string | undefined>) {
     const config = useRuntimeConfig()
     const data: any = await $fetch('/register', {
       baseURL: config.public.apiBase as string,

@@ -45,9 +45,10 @@ export const usePetStore = defineStore('pets', () => {
     const isForm = typeof FormData !== 'undefined' && petData instanceof FormData
     const headers: Record<string, string> = { ...authStore.baseHeaders }
     if (isForm) delete headers['Content-Type']
+    // POST für multipart: PUT + Datei scheitert oft (Server/Proxy/PHP).
     const data = await $fetch(`/households/${householdId}/pets/${petId}`, {
       baseURL: config.public.apiBase as string,
-      method: 'PUT',
+      method: isForm ? 'POST' : 'PUT',
       body: petData,
       headers,
     })

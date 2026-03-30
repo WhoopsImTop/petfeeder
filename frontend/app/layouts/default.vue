@@ -135,6 +135,10 @@
             
             <div v-else class="mt-4 bg-white p-5 rounded-3xl shadow-soft">
               <h4 class="font-bold mb-4">Einladen</h4>
+              <p class="text-xs text-slate-500 font-medium mb-4 leading-relaxed">
+                Bereits registrierte Nutzer werden sofort hinzugefügt und erhalten eine E-Mail.
+                Bei neuer Adresse verschicken wir eine Einladung mit Registrierungslink.
+              </p>
               <form @submit.prevent="handleInvite" class="space-y-3">
                 <input 
                   v-model="inviteForm.email"
@@ -181,6 +185,8 @@
         </div>
       </div>
     </div>
+
+    <PetEditDrawerHost />
   </div>
 </template>
 
@@ -270,8 +276,8 @@ const handleInvite = async () => {
   inviteError.value = ''
   try {
     const expiresAt = inviteForm.role === 'sitter' && inviteForm.expires_at ? inviteForm.expires_at : null
-    await householdStore.inviteMember(inviteForm.email, inviteForm.role, expiresAt)
-    inviteMessage.value = 'Erfolgreich eingeladen!'
+    const res = await householdStore.inviteMember(inviteForm.email, inviteForm.role, expiresAt)
+    inviteMessage.value = (res && typeof res.message === 'string') ? res.message : 'Erfolgreich eingeladen!'
     setTimeout(() => {
       showInviteForm.value = false
       inviteForm.email = ''

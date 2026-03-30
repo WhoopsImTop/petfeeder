@@ -29,4 +29,9 @@ class Household extends Model
     {
         return $this->hasMany(FeedingPlan::class);
     }
+
+    public function pendingInvites(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(HouseholdInvite::class)->whereNull('accepted_at');
+    }
 }

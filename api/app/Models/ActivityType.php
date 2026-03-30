@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ActivityType extends Model
 {
@@ -22,5 +23,10 @@ class ActivityType extends Model
     public function activityLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    public function petsWithQuickAction(): BelongsToMany
+    {
+        return $this->belongsToMany(Pet::class, 'pet_quick_action')->withTimestamps();
     }
 }

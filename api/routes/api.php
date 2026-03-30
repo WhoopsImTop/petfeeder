@@ -11,6 +11,8 @@ use App\Http\Controllers\ActivityBulkController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::get('/invites/{token}', [\App\Http\Controllers\HouseholdInviteController::class, 'show']);
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
@@ -19,12 +21,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::apiResource('households', HouseholdController::class);
     Route::post('households/{household}/invite', [HouseholdController::class, 'invite']);
+    Route::post('invites/{token}/accept', [\App\Http\Controllers\HouseholdInviteController::class, 'accept']);
 
     // Push Subscriptions
     Route::post('user/push-subscriptions', [\App\Http\Controllers\PushSubscriptionController::class, 'store']);
 
     // Nested resources
     Route::apiResource('households.pets', \App\Http\Controllers\PetController::class);
+    // Multipart-Uploads (Profilbild) sind per POST zuverlässiger als PUT (PHP/Limits).
+    Route::post('households/{household}/pets/{pet}', [\App\Http\Controllers\PetController::class, 'update']);
     Route::apiResource('households.feeding-plans', \App\Http\Controllers\FeedingPlanController::class);
     Route::get('households/{household}/pets/{pet}/feeding-week', [\App\Http\Controllers\PetFeedingWeekController::class, 'show']);
     Route::apiResource('households.activity-types', \App\Http\Controllers\ActivityTypeController::class);

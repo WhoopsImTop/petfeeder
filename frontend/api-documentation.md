@@ -139,7 +139,8 @@ Alle Routen starten mit `/households/{household}/pets`.
 
 ### Pet anzeigen, aktualisieren, löschen
 * **GET** `/households/{household}/pets/{pet}`
-* **PUT** `/households/{household}/pets/{pet}` — wie POST; bei Bild-Update ebenfalls `multipart/form-data` mit `avatar` möglich.
+* **PUT** `/households/{household}/pets/{pet}` — JSON-Body (ohne Datei).
+* **POST** `/households/{household}/pets/{pet}` — **Aktualisierung mit `multipart/form-data`** (Profilbild + Felder wie `name`, `birth_date`, …). Empfohlen für Bild-Upload; reines JSON-Update weiter per **PUT**.
 * **DELETE** `/households/{household}/pets/{pet}`
 
 ---

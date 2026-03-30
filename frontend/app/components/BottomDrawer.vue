@@ -1,19 +1,23 @@
 <template>
-  <div v-if="modelValue" class="fixed inset-0 z-50 flex items-end justify-center bg-earth-900/60 backdrop-blur-md touch-none md:touch-auto" @click.self="close">
-    <div 
-      class="bg-white rounded-t-[40px] px-6 pt-8 w-full max-w-md shadow-2xl animate-slide-up flex flex-col relative mt-auto overscroll-contain touch-manipulation safe-drawer-pad overflow-hidden"
-      :class="customDrawerClass"
-      :style="{ transform: `translateY(${translateY}px)`, transition: isDragging ? 'none' : 'transform 0.3s ease-out' }"
-      @touchstart="onTouchStart"
-      @mousedown="onTouchStart"
+  <Teleport to="body">
+    <div
+      v-if="modelValue"
+      class="fixed inset-0 z-[60] flex items-end justify-center bg-earth-900/60 backdrop-blur-md touch-none md:touch-auto"
+      @click.self="close"
     >
-      <div class="drag-handle w-16 h-2 bg-sand-100 rounded-full mx-auto shrink-0 mb-6 cursor-grab active:cursor-grabbing hover:bg-sand-200 transition-colors"></div>
-      
-      <!-- Slot provides the content -->
-      <slot></slot>
-      
+      <div
+        class="bg-white rounded-t-[40px] px-6 pt-8 w-full max-w-md shadow-2xl animate-slide-up flex flex-col relative mt-auto overscroll-contain touch-manipulation safe-drawer-pad overflow-hidden"
+        :class="customDrawerClass"
+        :style="{ transform: `translateY(${translateY}px)`, transition: isDragging ? 'none' : 'transform 0.3s ease-out' }"
+        @touchstart="onTouchStart"
+        @mousedown="onTouchStart"
+      >
+        <div class="drag-handle w-16 h-2 bg-sand-100 rounded-full mx-auto shrink-0 mb-6 cursor-grab active:cursor-grabbing hover:bg-sand-200 transition-colors" />
+
+        <slot />
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>

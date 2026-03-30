@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdatePetRequest extends FormRequest
 {
@@ -23,6 +24,8 @@ class UpdatePetRequest extends FormRequest
      */
     public function rules(): array
     {
+        $householdId = (int) $this->route('household');
+
         $avatar = $this->hasFile('avatar')
             ? ['avatar' => ['nullable', 'image', 'max:4096']]
             : ['avatar' => ['nullable', 'string', 'max:2048']];
@@ -33,6 +36,11 @@ class UpdatePetRequest extends FormRequest
             'breed' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
             'weight' => 'nullable|numeric|min:0',
+            'quick_action_activity_type_ids' => ['sometimes', 'array'],
+            'quick_action_activity_type_ids.*' => [
+                'integer',
+                Rule::exists('activity_types', 'id')->where('household_id', $householdId),
+            ],
         ] + $avatar;
     }
 }
