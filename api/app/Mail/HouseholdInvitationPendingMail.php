@@ -17,6 +17,8 @@ class HouseholdInvitationPendingMail extends Mailable
 
     public string $registerUrl;
 
+    public string $acceptUrl;
+
     public function __construct(
         public HouseholdInvite $invite,
         public Household $household,
@@ -24,6 +26,7 @@ class HouseholdInvitationPendingMail extends Mailable
     ) {
         $base = rtrim(config('app.frontend_url', config('app.url')), '/');
         $this->registerUrl = $base.'/register?invite_token='.$invite->token;
+        $this->acceptUrl = $base.'/invite/accept?token='.$invite->token;
     }
 
     public function envelope(): Envelope

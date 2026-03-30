@@ -18,7 +18,13 @@
     <p style="margin-top: 1.5rem;">
         <a href="{{ $registerUrl }}" style="display: inline-block; background: #16a34a; color: #fff; text-decoration: none; padding: 0.75rem 1.25rem; border-radius: 0.5rem; font-weight: 600;">Konto anlegen &amp; beitreten</a>
     </p>
-    <p style="font-size: 0.875rem; color: #64748b;">Diese E-Mail ging an <strong>{{ $invite->email }}</strong> — nutze dieselbe Adresse bei der Registrierung.</p>
+    <p style="margin-top: 1.25rem; font-size: 0.9375rem; color: #475569;">
+        <strong>Schon ein Konto?</strong> Diesen Link öffnen, anmelden — der Beitritt zum Haushalt wird dann automatisch ausgeführt:
+    </p>
+    <p style="margin-top: 0.5rem;">
+        <a href="{{ $acceptUrl }}" style="color: #15803d; font-weight: 600;">Einladung mit bestehendem Konto annehmen</a>
+    </p>
+    <p style="font-size: 0.875rem; color: #64748b;">Diese E-Mail ging an <strong>{{ $invite->email }}</strong> — nutze dieselbe Adresse bei der Registrierung oder beim Login.</p>
     <p style="font-size: 0.875rem; color: #94a3b8;">{{ config('app.name') }}</p>
 </body>
 </html>

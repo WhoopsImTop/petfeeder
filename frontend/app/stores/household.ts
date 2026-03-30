@@ -61,12 +61,22 @@ export const useHouseholdStore = defineStore('household', () => {
     })
   }
 
+  async function acceptInviteToken(token: string) {
+    const config = useRuntimeConfig()
+    return await $fetch<{ message?: string; household_id?: number }>(`/invites/${token}/accept`, {
+      baseURL: config.public.apiBase as string,
+      method: 'POST',
+      headers: authStore.baseHeaders
+    })
+  }
+
   return {
     households,
     activeHousehold,
     activeHouseholdDetails,
     setActiveHousehold,
     fetchActiveHouseholdDetails,
-    inviteMember
+    inviteMember,
+    acceptInviteToken
   }
 })

@@ -40,13 +40,20 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: false })
 
+function safeInternalRedirect(raw: unknown): string {
+  if (typeof raw !== 'string' || raw.length === 0) return '/'
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/'
+  return raw
+}
+
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const form = reactive({ email: '', password: '' })
 const loading = ref(false)
@@ -58,7 +65,7 @@ const handleLogin = async () => {
   try {
     await authStore.login({ email: form.email, password: form.password })
     if (authStore.isAuthenticated) {
-      router.push('/')
+      router.push(safeInternalRedirect(route.query.redirect))
     } else {
       error.value = 'E-Mail oder Passwort falsch.'
     }
