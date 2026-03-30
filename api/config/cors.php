@@ -19,7 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
+    /*
+     * Muss exakt dem Browser-Origin entsprechen (ohne Pfad, ohne trailing slash).
+     * Auf dem API-Server: FRONTEND_URL=https://petfeeder.elias-englen.de
+     */
+    'allowed_origins' => [rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/')],
 
     'allowed_origins_patterns' => [],
 
