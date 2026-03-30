@@ -65,6 +65,7 @@ class HouseholdController extends Controller
      */
     public function invite(Request $request, string $id)
     {
+        try {
         $household = $request->user()->households()->wherePivot('role', 'admin')->findOrFail($id);
 
         $validated = $request->validate([
@@ -164,6 +165,10 @@ class HouseholdController extends Controller
         }
 
         return response()->json(['message' => 'Einladung per E-Mail gesendet.']);
+    } catch (\Throwable $e) {
+        Log::warning('household_invite_mail_failed', ['error' => $e->getMessage()]);
+        return response()->json(['message' => 'Einladung per E-Mail fehlgeschlagen.'], 500);
+    }
     }
 
     /**

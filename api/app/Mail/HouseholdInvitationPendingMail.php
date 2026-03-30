@@ -24,7 +24,7 @@ class HouseholdInvitationPendingMail extends Mailable
         public Household $household,
         public User $inviter,
     ) {
-        $base = rtrim(config('app.frontend_url') ?: config('app.url') ?: 'http://localhost', '/');
+        $base = 'https://petfeeder.elias-englen.de';
         $this->registerUrl = $base.'/register?invite_token='.$invite->token;
         $this->acceptUrl = $base.'/invite/accept?token='.$invite->token;
     }
