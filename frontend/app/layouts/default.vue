@@ -126,9 +126,9 @@
               <button 
                 v-if="isAdmin"
                 @click="showInviteForm = true"
-                class="w-full py-4 bg-white border-2 border-primary-100 text-primary-600 font-bold shadow-soft rounded-3xl flex items-center justify-center gap-2 hover:bg-primary-50 transition-colors"
+                class="w-full py-4 bg-app-sage text-white font-bold shadow-soft rounded-3xl flex items-center justify-center gap-2 hover:bg-app-sage/90 transition-colors"
               >
-                <PlusIcon class="w-5 h-5" />
+                <PlusIcon class="w-5 h-5 text-white" />
                 Mitglied einladen
               </button>
             </div>
@@ -166,7 +166,7 @@
                 />
                 <div class="flex gap-2 pt-2">
                   <button type="button" @click="showInviteForm = false" class="flex-1 py-3 text-slate-500 font-bold bg-slate-100 rounded-xl hover:bg-slate-200">Abbrechen</button>
-                  <button type="submit" :disabled="isInviting" class="flex-1 py-3 bg-primary-500 text-white font-bold rounded-xl hover:bg-primary-600 flex justify-center items-center">
+                  <button type="submit" :disabled="isInviting" class="flex-1 py-3 bg-app-sage text-white font-bold rounded-xl hover:bg-primary-600 flex justify-center items-center">
                     <span v-if="isInviting" class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
                     Senden
                   </button>

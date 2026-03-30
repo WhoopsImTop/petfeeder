@@ -73,6 +73,9 @@ class HouseholdController extends Controller
             'expires_at' => 'nullable|date',
         ]);
 
+        $rawExpiresAt = $validated['expires_at'] ?? null;
+        $expiresAt = ($rawExpiresAt === null || $rawExpiresAt === '') ? null : $rawExpiresAt;
+
         $emailNormalized = strtolower(trim($validated['email']));
         $userToInvite = User::whereRaw('LOWER(email) = ?', [$emailNormalized])->first();
 
@@ -85,7 +88,7 @@ class HouseholdController extends Controller
                 if ($existingExpiresAt && Carbon::parse($existingExpiresAt)->isPast()) {
                     $household->users()->updateExistingPivot($userToInvite->id, [
                         'role' => $validated['role'] ?? 'member',
-                        'expires_at' => $validated['expires_at'] ?? null,
+                        'expires_at' => $expiresAt,
                     ]);
 
                     try {
@@ -104,7 +107,7 @@ class HouseholdController extends Controller
 
             $household->users()->attach($userToInvite->id, [
                 'role' => $validated['role'] ?? 'member',
-                'expires_at' => $validated['expires_at'] ?? null,
+                'expires_at' => $expiresAt,
             ]);
 
             try {
@@ -127,7 +130,7 @@ class HouseholdController extends Controller
             $existingPending->update([
                 'token' => Str::random(64),
                 'role' => $validated['role'] ?? 'member',
-                'expires_at' => $validated['expires_at'] ?? null,
+                'expires_at' => $expiresAt,
                 'invited_by_user_id' => $request->user()->id,
             ]);
             $existingPending->refresh();
@@ -147,7 +150,7 @@ class HouseholdController extends Controller
             'household_id' => $household->id,
             'email' => $emailNormalized,
             'role' => $validated['role'] ?? 'member',
-            'expires_at' => $validated['expires_at'] ?? null,
+            'expires_at' => $expiresAt,
             'token' => Str::random(64),
             'invited_by_user_id' => $request->user()->id,
         ]);

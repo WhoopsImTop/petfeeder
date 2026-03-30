@@ -21,7 +21,7 @@ class HouseholdMemberAddedMail extends Mailable
         public User $inviter,
         public User $addedUser,
     ) {
-        $this->appUrl = rtrim(config('app.frontend_url', config('app.url')), '/');
+        $this->appUrl = rtrim(config('app.frontend_url') ?: config('app.url') ?: 'http://localhost', '/');
     }
 
     public function envelope(): Envelope
