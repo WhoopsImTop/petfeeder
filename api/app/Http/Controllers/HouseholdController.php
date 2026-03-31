@@ -172,6 +172,27 @@ class HouseholdController extends Controller
     }
 
     /**
+     * Remove a member from the household (admin only).
+     */
+    public function removeMember(Request $request, string $id, string $userId)
+    {
+        $household = $request->user()->households()->wherePivot('role', 'admin')->findOrFail($id);
+
+        if ((int) $request->user()->id === (int) $userId) {
+            return response()->json(['message' => 'Du kannst dich nicht selbst entfernen.'], 422);
+        }
+
+        $isMember = $household->users()->where('users.id', $userId)->exists();
+        if (!$isMember) {
+            return response()->json(['message' => 'Mitglied nicht gefunden.'], 404);
+        }
+
+        $household->users()->detach($userId);
+
+        return response()->json(['message' => 'Mitglied entfernt.']);
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)

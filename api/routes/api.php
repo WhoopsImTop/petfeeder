@@ -25,6 +25,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Push Subscriptions
     Route::post('user/push-subscriptions', [\App\Http\Controllers\PushSubscriptionController::class, 'store']);
+    Route::delete('user/push-subscriptions', [\App\Http\Controllers\PushSubscriptionController::class, 'destroy']);
 
     // Nested resources
     Route::apiResource('households.pets', \App\Http\Controllers\PetController::class);
@@ -38,4 +39,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('households/{household}/activity-logs', [ActivityLogController::class, 'store']);
     Route::post('households/{household}/activity-logs/bulk', [ActivityBulkController::class, 'store']);
     Route::delete('households/{household}/activity-logs/{activityLog}', [ActivityLogController::class, 'destroy']);
+    Route::delete('households/{household}/members/{user}', [HouseholdController::class, 'removeMember']);
 });

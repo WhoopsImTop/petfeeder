@@ -25,7 +25,7 @@
       </div>
       <div>
         <label class="block text-[11px] font-bold text-app-muted ml-1 mb-1.5">Geburtstag</label>
-        <input v-model="birthDateDisplay" type="date" class="w-full bg-white border-2 border-app-tan/25 rounded-[18px] px-4 py-3.5 font-extrabold text-app-brown outline-none focus:border-app-accent" @blur="syncBirthFromDisplay">
+        <input v-model="birthDateDisplay" type="date" class="w-full ios-date-fix bg-white border-2 border-app-tan/25 rounded-[18px] px-4 py-3.5 font-extrabold text-app-brown outline-none focus:border-app-accent" @blur="syncBirthFromDisplay">
       </div>
     </div>
 
@@ -329,7 +329,10 @@ async function save() {
     emit('close')
   } catch (e) {
     console.error(e)
-    alert('Speichern fehlgeschlagen.')
+    const details = e?.data?.errors
+      ? Object.values(e.data.errors).flat().join('\n')
+      : (e?.data?.message || e?.message || 'Speichern fehlgeschlagen.')
+    alert(details)
   } finally {
     saving.value = false
   }

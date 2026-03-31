@@ -64,6 +64,51 @@
                 </button>
               </div>
             </div>
+            <div v-if="isAdmin" class="mt-4 bg-white p-5 rounded-3xl shadow-soft">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h4 class="font-bold">Haushaltsname</h4>
+                  <p class="text-sm text-slate-500">{{ householdStore.activeHousehold?.name || '-' }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="p-2.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                  aria-label="Haushaltsname bearbeiten"
+                  @click="showRenameForm = !showRenameForm"
+                >
+                  <PencilSquareIcon class="w-5 h-5" />
+                </button>
+              </div>
+              <form v-if="showRenameForm" @submit.prevent="handleRenameHousehold" class="space-y-3 mt-4">
+                <input
+                  v-model="renameHouseholdForm.name"
+                  type="text"
+                  required
+                  maxlength="255"
+                  placeholder="Neuer Haushaltsname"
+                  class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-primary-300 transition-colors text-sm"
+                />
+                <div class="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    class="flex-1 py-3 text-slate-500 font-bold bg-slate-100 rounded-xl hover:bg-slate-200"
+                    @click="showRenameForm = false"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    type="submit"
+                    :disabled="isRenamingHousehold || !renameHouseholdForm.name.trim()"
+                    class="flex-1 py-3 bg-app-sage text-white font-bold rounded-xl hover:bg-primary-600 disabled:opacity-60 flex justify-center items-center"
+                  >
+                    <span v-if="isRenamingHousehold" class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
+                    Speichern
+                  </button>
+                </div>
+              </form>
+              <p v-if="renameHouseholdMessage" class="text-green-500 font-bold text-sm text-center mt-3">{{ renameHouseholdMessage }}</p>
+              <p v-if="renameHouseholdError" class="text-red-500 font-bold text-sm text-center mt-3">{{ renameHouseholdError }}</p>
+            </div>
           </section>
 
 
@@ -77,12 +122,12 @@
                 <span class="text-xs text-slate-400 font-medium">{{ pushStatusText }}</span>
               </div>
               <button 
-                @click="enablePushNotifications" 
-                :disabled="isPushEnabled || isPushLoading"
+                @click="togglePushNotifications"
+                :disabled="isPushLoading"
                 class="px-4 py-2 font-bold rounded-xl text-sm transition-colors"
-                :class="isPushEnabled ? 'bg-green-50 text-green-600' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'"
+                :class="isPushEnabled ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'"
               >
-                {{ isPushEnabled ? 'Aktiviert' : (isPushLoading ? 'Lädt...' : 'Aktivieren') }}
+                {{ isPushLoading ? 'Lädt...' : (isPushEnabled ? 'Deaktivieren' : 'Aktivieren') }}
               </button>
             </div>
           </section>
@@ -117,6 +162,16 @@
                       </span>
                     </span>
                   </div>
+                  <button
+                    v-if="isAdmin && user.id !== authStore.user?.id"
+                    type="button"
+                    class="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    :disabled="isRemovingMemberId === user.id"
+                    :aria-label="`${user.name} entfernen`"
+                    @click="handleRemoveMember(user)"
+                  >
+                    <TrashIcon class="w-5 h-5" />
+                  </button>
                 </div>
               </template>
             </div>
@@ -162,7 +217,7 @@
                   v-model="inviteForm.expires_at"
                   type="date"
                   required
-                  class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-primary-300 transition-colors text-sm"
+                  class="w-full ios-date-fix px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:outline-none focus:border-primary-300 transition-colors text-sm"
                 />
                 <div class="flex gap-2 pt-2">
                   <button type="button" @click="showInviteForm = false" class="flex-1 py-3 text-slate-500 font-bold bg-slate-100 rounded-xl hover:bg-slate-200">Abbrechen</button>
@@ -203,7 +258,9 @@ import {
   ChartBarIcon,
   UserIcon,
   XMarkIcon,
-  PlusIcon
+  PlusIcon,
+  PencilSquareIcon,
+  TrashIcon
 } from '@heroicons/vue/24/solid'
 
 const route = useRoute()
@@ -257,6 +314,12 @@ const isInviting = ref(false)
 const inviteForm = reactive({ email: '', role: 'member', expires_at: '' })
 const inviteMessage = ref('')
 const inviteError = ref('')
+const isRenamingHousehold = ref(false)
+const showRenameForm = ref(false)
+const renameHouseholdForm = reactive({ name: '' })
+const renameHouseholdMessage = ref('')
+const renameHouseholdError = ref('')
+const isRemovingMemberId = ref(null)
 
 watch(() => inviteForm.role, (role) => {
   // Wenn keine „temporäre“ Rolle gewählt ist, Datum leeren.
@@ -269,6 +332,14 @@ const isAdmin = computed(() => {
   const me = users.find(u => u.id === id)
   return me?.pivot?.role === 'admin'
 })
+
+watch(
+  () => householdStore.activeHousehold?.name,
+  (name) => {
+    renameHouseholdForm.name = name || ''
+  },
+  { immediate: true }
+)
 
 const handleInvite = async () => {
   isInviting.value = true
@@ -289,6 +360,46 @@ const handleInvite = async () => {
     inviteError.value = err.data?.message || 'Fehler beim Einladen.'
   } finally {
     isInviting.value = false
+  }
+}
+
+const handleRenameHousehold = async () => {
+  const name = renameHouseholdForm.name.trim()
+  if (!name) return
+  isRenamingHousehold.value = true
+  renameHouseholdMessage.value = ''
+  renameHouseholdError.value = ''
+  try {
+    await householdStore.updateActiveHouseholdName(name)
+    await Promise.all([
+      authStore.fetchUser(),
+      householdStore.fetchActiveHouseholdDetails()
+    ])
+    renameHouseholdMessage.value = 'Haushaltsname aktualisiert.'
+    showRenameForm.value = false
+  } catch (err) {
+    renameHouseholdError.value = err.data?.message || 'Fehler beim Aktualisieren des Haushaltsnamens.'
+  } finally {
+    isRenamingHousehold.value = false
+  }
+}
+
+const handleRemoveMember = async (user) => {
+  if (!user?.id) return
+  const confirmed = window.confirm(`${user.name} wirklich aus dem Haushalt entfernen?`)
+  if (!confirmed) return
+
+  isRemovingMemberId.value = Number(user.id)
+  try {
+    await householdStore.removeMember(Number(user.id))
+    await Promise.all([
+      authStore.fetchUser(),
+      householdStore.fetchActiveHouseholdDetails()
+    ])
+  } catch (err) {
+    alert(err.data?.message || 'Mitglied konnte nicht entfernt werden.')
+  } finally {
+    isRemovingMemberId.value = null
   }
 }
 
@@ -351,6 +462,40 @@ async function enablePushNotifications() {
   }
 }
 
+async function disablePushNotifications() {
+  if (!('serviceWorker' in navigator)) return
+
+  isPushLoading.value = true
+  try {
+    const registration = await navigator.serviceWorker.ready
+    const subscription = await registration.pushManager.getSubscription()
+
+    if (subscription) {
+      const endpoint = subscription.endpoint
+      await subscription.unsubscribe()
+      await removeSubscriptionFromBackend(endpoint)
+    } else {
+      await removeSubscriptionFromBackend()
+    }
+
+    isPushEnabled.value = false
+    pushStatusText.value = 'Nicht abonniert'
+  } catch (error) {
+    console.error("Fehler bei Push-Deaktivierung:", error)
+    alert("Fehler bei Push-Deaktivierung.")
+  } finally {
+    isPushLoading.value = false
+  }
+}
+
+async function togglePushNotifications() {
+  if (isPushEnabled.value) {
+    await disablePushNotifications()
+    return
+  }
+  await enablePushNotifications()
+}
+
 async function sendSubscriptionToBackend(subscription) {
   const subJson = subscription.toJSON()
   const payload = {
@@ -367,6 +512,16 @@ async function sendSubscriptionToBackend(subscription) {
     baseURL: config.public.apiBase,
     method: 'POST',
     body: payload,
+    headers: authStore.baseHeaders
+  })
+}
+
+async function removeSubscriptionFromBackend(endpoint) {
+  const config = useRuntimeConfig()
+  await $fetch('/user/push-subscriptions', {
+    baseURL: config.public.apiBase,
+    method: 'DELETE',
+    body: endpoint ? { endpoint } : {},
     headers: authStore.baseHeaders
   })
 }

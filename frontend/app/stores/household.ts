@@ -61,6 +61,27 @@ export const useHouseholdStore = defineStore('household', () => {
     })
   }
 
+  async function updateActiveHouseholdName(name: string) {
+    if (!activeHousehold.value) return null
+    const config = useRuntimeConfig()
+    return await $fetch(`/households/${activeHousehold.value.id}`, {
+      baseURL: config.public.apiBase as string,
+      method: 'PUT',
+      body: { name },
+      headers: authStore.baseHeaders
+    })
+  }
+
+  async function removeMember(userId: number) {
+    if (!activeHousehold.value) return null
+    const config = useRuntimeConfig()
+    return await $fetch(`/households/${activeHousehold.value.id}/members/${userId}`, {
+      baseURL: config.public.apiBase as string,
+      method: 'DELETE',
+      headers: authStore.baseHeaders
+    })
+  }
+
   async function acceptInviteToken(token: string) {
     const config = useRuntimeConfig()
     return await $fetch<{ message?: string; household_id?: number }>(`/invites/${token}/accept`, {
@@ -77,6 +98,8 @@ export const useHouseholdStore = defineStore('household', () => {
     setActiveHousehold,
     fetchActiveHouseholdDetails,
     inviteMember,
+    updateActiveHouseholdName,
+    removeMember,
     acceptInviteToken
   }
 })

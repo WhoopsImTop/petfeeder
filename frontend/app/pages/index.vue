@@ -12,7 +12,7 @@
         </button>
       </div>
 
-      <div v-else class="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 pt-4 -mx-4 px-4 sm:-mx-6 sm:px-6 hide-scrollbar relative">
+      <div v-else class="ml-1 flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4 pt-4 -mx-4 px-4 sm:-mx-6 sm:px-6 hide-scrollbar relative">
         <!-- Pets Cards -->
         <PetCard 
           v-for="pet in petStore.pets" 
@@ -27,11 +27,6 @@
         <div class="snap-center shrink-0 w-[85%] bg-sand-50 rounded-[32px] p-6 flex flex-col items-center justify-center min-h-[250px] cursor-pointer border-4 border-dashed border-sand-200 hover:bg-sand-100 transition-colors" @click="openAddModal">
           <span class="text-earth-400 font-bold">+ Tier hinzufügen</span>
         </div>
-      </div>
-      
-      <!-- Slider dots indicator -->
-      <div v-if="petStore.pets.length > 0" class="flex justify-center gap-2 mt-4">
-        <div v-for="(pet, i) in petStore.pets" :key="pet.id" class="h-2 rounded-full transition-all" :class="i === 0 ? 'w-6 bg-white' : 'w-2 bg-white/50'"></div>
       </div>
     </div>
 
@@ -183,7 +178,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-sand-200 uppercase tracking-widest mb-2 ml-1">Geburtsdatum</label>
-            <input v-model="petForm.birth_date" type="date" class="w-full bg-sand-50 border-2 border-sand-100 rounded-[20px] px-5 py-4 font-bold text-earth-900 outline-none focus:border-earth-400 focus:bg-white transition-colors" />
+            <input v-model="petForm.birth_date" type="date" class="w-full ios-date-fix bg-sand-50 border-2 border-sand-100 rounded-[20px] px-5 py-4 font-bold text-earth-900 outline-none focus:border-earth-400 focus:bg-white transition-colors" />
           </div>
           <div>
             <label class="block text-xs font-bold text-sand-200 uppercase tracking-widest mb-2 ml-1">Gewicht (kg)</label>
@@ -334,7 +329,7 @@ function lastFeedingText(petId) {
   const log = list[0]
   if (!log) return ''
   const d = new Date(log.started_at || log.created_at)
-  return `🍖 Gefüttert am ${d.toLocaleDateString('de-DE')} um ${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
+  return `🍖 ${d.toLocaleDateString('de-DE')} um ${d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
 }
 
 function petCompletedSlotToday(petId, slot) {
