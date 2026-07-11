@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Household;
 use App\Models\HouseholdInvite;
 use App\Models\User;
+use App\Services\AuthTokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -12,8 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly AuthTokenService $tokenService,
+    ) {}
+
     /**
-     * Register a new user and return a token.
+     * Register a new user and return a token pair.
      */
     public function register(Request $request)
     {
@@ -72,13 +77,13 @@ class AuthController extends Controller
         });
 
         return response()->json([
-            'access_token' => $user->createToken('api_token')->plainTextToken,
+            ...$this->tokenService->issueTokenPair($user),
             'user' => $user->load('households'),
         ], 201);
     }
 
     /**
-     * Authenticate user and return a token.
+     * Authenticate user and return a token pair.
      */
     public function login(Request $request)
     {
@@ -96,17 +101,36 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'access_token' => $user->createToken('api_token')->plainTextToken,
-            'user' => $user,
+            ...$this->tokenService->issueTokenPair($user),
+            'user' => $user->load('households'),
         ]);
     }
 
     /**
-     * Revoke the current token.
+     * Issue a new access/refresh token pair using a valid refresh token.
+     */
+    public function refresh(Request $request)
+    {
+        $validated = $request->validate([
+            'refresh_token' => 'required|string',
+        ]);
+
+        return response()->json(
+            $this->tokenService->refreshTokenPair($validated['refresh_token'])
+        );
+    }
+
+    /**
+     * Revoke the current access token and optional refresh token.
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $validated = $request->validate([
+            'refresh_token' => 'nullable|string',
+        ]);
+
+        $this->tokenService->revokeCurrentAccessToken($request->user());
+        $this->tokenService->revokeRefreshToken($request->user(), $validated['refresh_token'] ?? null);
 
         return response()->json(['message' => 'Erfolgreich abgemeldet.']);
     }

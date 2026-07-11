@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { useCookie, useRuntimeConfig } from '#imports'
+import { useCookie } from '#imports'
 import { useAuthStore } from './auth'
 
 export const useHouseholdStore = defineStore('household', () => {
@@ -38,35 +38,25 @@ export const useHouseholdStore = defineStore('household', () => {
   async function fetchActiveHouseholdDetails() {
     if (!activeHousehold.value) return
     try {
-      const config = useRuntimeConfig()
-      const data = await $fetch(`/households/${activeHousehold.value.id}`, {
-        baseURL: config.public.apiBase as string,
-        headers: authStore.baseHeaders
-      })
+      const data = await authStore.apiFetch(`/households/${activeHousehold.value.id}`)
       activeHouseholdDetails.value = data
       return data
-    } catch(e) {
+    } catch (e) {
       console.error('Failed to fetch household details', e)
     }
   }
 
   async function inviteMember(email: string, role: string, expiresAt?: string | null) {
     if (!activeHousehold.value) return
-    const config = useRuntimeConfig()
-    return await $fetch(`/households/${activeHousehold.value.id}/invite`, {
-      baseURL: config.public.apiBase as string,
+    return await authStore.apiFetch(`/households/${activeHousehold.value.id}/invite`, {
       method: 'POST',
       body: { email, role, expires_at: expiresAt ?? null },
-      headers: authStore.baseHeaders
     })
   }
 
   async function acceptInviteToken(token: string) {
-    const config = useRuntimeConfig()
-    return await $fetch<{ message?: string; household_id?: number }>(`/invites/${token}/accept`, {
-      baseURL: config.public.apiBase as string,
+    return await authStore.apiFetch<{ message?: string; household_id?: number }>(`/invites/${token}/accept`, {
       method: 'POST',
-      headers: authStore.baseHeaders
     })
   }
 
@@ -77,6 +67,6 @@ export const useHouseholdStore = defineStore('household', () => {
     setActiveHousehold,
     fetchActiveHouseholdDetails,
     inviteMember,
-    acceptInviteToken
+    acceptInviteToken,
   }
 })

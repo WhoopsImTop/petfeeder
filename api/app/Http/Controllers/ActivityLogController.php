@@ -18,8 +18,10 @@ class ActivityLogController extends Controller
         $household = $request->user()->households()->findOrFail($householdId);
 
         $query = ActivityLog::with(['pet', 'activityType', 'user'])
-            ->whereHas('pet', function ($q) use ($householdId) {
-                $q->where('household_id', $householdId);
+            ->where(function ($q) use ($householdId) {
+                $q->whereHas('pet', function ($p) use ($householdId) {
+                    $p->where('household_id', $householdId);
+                })->orWhere('household_id', $householdId);
             });
 
         if ($request->has('pet_id')) {
@@ -65,8 +67,11 @@ class ActivityLogController extends Controller
         // First confirm household matches
         $household = $request->user()->households()->findOrFail($householdId);
         
-        // Ensure log belongs to a pet in this household
-        if ($activityLog->pet->household_id != $household->id) {
+        // Ensure log belongs to this household
+        $belongsToHousehold = $activityLog->household_id === (int) $household->id
+            || ($activityLog->pet && $activityLog->pet->household_id === (int) $household->id);
+
+        if (! $belongsToHousehold) {
             abort(403);
         }
 

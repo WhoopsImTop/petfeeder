@@ -165,9 +165,11 @@ class HouseholdController extends Controller
         }
 
         return response()->json(['message' => 'Einladung per E-Mail gesendet.']);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        throw $e;
     } catch (\Throwable $e) {
-        Log::warning('household_invite_mail_failed', ['error' => $e->getMessage()]);
-        return response()->json(['message' => 'Einladung per E-Mail fehlgeschlagen.'], 500);
+        Log::warning('household_invite_failed', ['error' => $e->getMessage()]);
+        return response()->json(['message' => 'Einladung fehlgeschlagen.'], 500);
     }
     }
 

@@ -76,16 +76,24 @@
           <div class="flex justify-between px-0.5 pt-4 mt-3 border-t border-app-tan/15">
             <div v-for="(day, index) in weekDays" :key="'c'+pet.id+index" class="flex flex-col items-center gap-1.5">
               <span class="text-[9px] font-extrabold text-app-muted uppercase">{{ getDayLabel(day) }}</span>
-              <div v-if="getDayCellStatus(pet.id, day) === 'green'" class="w-7 h-7 rounded-full bg-app-sage text-white flex items-center justify-center shadow-sm border-2 border-app-sage/40" title="Alles erfüllt">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-              </div>
-              <div v-else-if="getDayCellStatus(pet.id, day) === 'orange'" class="w-7 h-7 rounded-full bg-orange-400 text-white flex items-center justify-center shadow-sm" title="Teilweise">
-                <span class="font-black text-sm leading-none">−</span>
-              </div>
-              <div v-else-if="getDayCellStatus(pet.id, day) === 'red'" class="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm" title="Offen">
-                <span class="font-black text-[11px]">✕</span>
-              </div>
-              <div v-else class="w-7 h-7 rounded-full border-[2.5px] border-dashed border-app-tan/45 flex items-center justify-center" :title="getDayCellStatus(pet.id, day) === 'future' ? 'Zukunft' : 'Kein Plan'" />
+              <button
+                type="button"
+                class="rounded-full focus:outline-none focus:ring-2 focus:ring-app-accent/40 disabled:cursor-default"
+                :disabled="getDayCellStatus(pet.id, day) === 'future' || getDayCellStatus(pet.id, day) === 'none'"
+                :title="getDayCellStatus(pet.id, day) === 'future' ? 'Zukunft' : (getDayCellStatus(pet.id, day) === 'none' ? 'Kein Plan' : 'Offene Slots nachtragen')"
+                @click.stop="openCatchUpModal(pet.id, day)"
+              >
+                <div v-if="getDayCellStatus(pet.id, day) === 'green'" class="w-7 h-7 rounded-full bg-app-sage text-white flex items-center justify-center shadow-sm border-2 border-app-sage/40">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <div v-else-if="getDayCellStatus(pet.id, day) === 'orange'" class="w-7 h-7 rounded-full bg-orange-400 text-white flex items-center justify-center shadow-sm">
+                  <span class="font-black text-sm leading-none">−</span>
+                </div>
+                <div v-else-if="getDayCellStatus(pet.id, day) === 'red'" class="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm">
+                  <span class="font-black text-[11px]">✕</span>
+                </div>
+                <div v-else class="w-7 h-7 rounded-full border-[2.5px] border-dashed border-app-tan/45 flex items-center justify-center" />
+              </button>
             </div>
           </div>
         </button>
@@ -154,6 +162,17 @@
           </div>
 
           <div>
+            <label class="block text-xs font-bold text-sand-200 uppercase tracking-widest mb-2 ml-1">Datum &amp; Uhrzeit (Optional)</label>
+            <input v-model="activityForm.started_at" type="datetime-local" class="w-full bg-sand-50 border-2 border-sand-100 rounded-[20px] px-5 py-4 font-bold text-earth-900 outline-none focus:border-earth-400 focus:bg-white transition-colors" />
+            <p class="text-[11px] font-bold text-sand-200 mt-2 ml-1">Leer lassen = jetzt. Für vergangene Tage Datum wählen.</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-sand-200 uppercase tracking-widest mb-2 ml-1">Ende (Optional)</label>
+            <input v-model="activityForm.ended_at" type="datetime-local" class="w-full bg-sand-50 border-2 border-sand-100 rounded-[20px] px-5 py-4 font-bold text-earth-900 outline-none focus:border-earth-400 focus:bg-white transition-colors" />
+          </div>
+
+          <div>
             <label class="block text-xs font-bold text-sand-200 uppercase tracking-widest mb-2 ml-1">Wert / Menge (Optional)</label>
             <input v-model.number="activityForm.value" type="number" step="0.1" class="w-full bg-sand-50 border-2 border-sand-100 rounded-[20px] px-5 py-4 font-bold text-earth-900 outline-none focus:border-earth-400 focus:bg-white transition-colors" placeholder="z. B. 200 (Gramm Futter)" />
           </div>
@@ -168,6 +187,33 @@
             </button>
           </div>
         </form>
+    </BottomDrawer>
+
+    <BottomDrawer v-model="isCatchUpModalOpen">
+      <h2 class="text-2xl font-extrabold text-earth-900 tracking-tight leading-tight mb-2 mt-4">Offene Slots nachtragen</h2>
+      <p v-if="catchUpData" class="text-sm font-bold text-sand-200 mb-6">{{ catchUpData.petName }} · {{ catchUpData.dateLabel }}</p>
+
+      <div v-if="catchUpData?.slots?.length" class="space-y-4">
+        <div v-for="slot in catchUpData.slots" :key="slot.id" class="bg-sand-50 border-2 border-sand-100 rounded-[20px] p-4 space-y-3">
+          <div>
+            <span class="font-extrabold text-earth-900">{{ slot.title || 'Fütterung' }}</span>
+            <span class="text-sm font-bold text-sand-200 ml-2">{{ slot.timeShort }}</span>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-sand-200 uppercase tracking-widest mb-2">Zeitpunkt</label>
+            <input v-model="slot.started_at_local" type="datetime-local" class="w-full bg-white border-2 border-sand-100 rounded-[16px] px-4 py-3 font-bold text-earth-900 outline-none focus:border-earth-400" />
+          </div>
+          <button
+            type="button"
+            class="w-full py-3 bg-leaf-400 text-white font-extrabold rounded-[16px] hover:bg-leaf-500 transition-colors disabled:opacity-50"
+            :disabled="isSavingCatchUp"
+            @click="saveCatchUpSlot(slot)"
+          >
+            Speichern
+          </button>
+        </div>
+      </div>
+      <p v-else class="text-sm font-bold text-sand-200">Keine offenen Slots für diesen Tag.</p>
     </BottomDrawer>
     
     <!-- Modal for Activity Types -->
@@ -422,6 +468,87 @@ const activityForm = ref({
 const isTypeModalOpen = ref(false)
 const typeForm = ref({ icon: '', name: '', type: 'value', is_fast_action: true })
 const isSavingType = ref(false)
+const isCatchUpModalOpen = ref(false)
+const isSavingCatchUp = ref(false)
+const catchUpData = ref(null)
+
+function isoWeekdayFromDate(date) {
+  const j = date.getDay()
+  return j === 0 ? 7 : j
+}
+
+function findSlotById(slotId) {
+  for (const plan of feedingPlanStore.plans) {
+    const slot = (plan.slots || []).find((s) => s.id === slotId)
+    if (slot) return slot
+  }
+  return null
+}
+
+function buildLocalDatetime(date, timeRaw) {
+  const ymd = toYMD(date)
+  const timeShort = typeof timeRaw === 'string' && timeRaw.length >= 5 ? timeRaw.slice(0, 5) : '08:00'
+  return `${ymd}T${timeShort}`
+}
+
+function openCatchUpModal(petId, date) {
+  const status = getDayCellStatus(petId, date)
+  if (status !== 'red' && status !== 'orange') return
+
+  const summary = weekSummariesByPet.value[petId]
+  const ymd = toYMD(new Date(date))
+  const day = summary?.days?.find((d) => d.date === ymd)
+  if (!day) return
+
+  const expected = day.expected_slot_ids || []
+  const completed = new Set(day.completed_slot_ids || [])
+  const missedIds = expected.filter((id) => !completed.has(id))
+
+  const pet = petStore.pets.find((p) => p.id === petId)
+  const slots = missedIds.map((id) => {
+    const slot = findSlotById(id)
+    const timeRaw = slot?.time || '08:00:00'
+    return {
+      id,
+      title: slot?.title || 'Fütterung',
+      timeShort: typeof timeRaw === 'string' ? timeRaw.slice(0, 5) : String(timeRaw),
+      activity_type_id: slot?.activity_type_id,
+      started_at_local: buildLocalDatetime(date, timeRaw),
+    }
+  }).filter((s) => s.activity_type_id)
+
+  catchUpData.value = {
+    petId,
+    petName: pet?.name || 'Tier',
+    dateLabel: new Date(date).toLocaleDateString('de-DE'),
+    slots,
+  }
+  isCatchUpModalOpen.value = true
+}
+
+async function saveCatchUpSlot(slot) {
+  if (!householdStore.activeHousehold?.id || !catchUpData.value) return
+  isSavingCatchUp.value = true
+  try {
+    const startedAt = slot.started_at_local.replace('T', ' ') + ':00'
+    await activityStore.createActivity(householdStore.activeHousehold.id, {
+      pet_id: catchUpData.value.petId,
+      activity_type_id: slot.activity_type_id,
+      feeding_plan_slot_id: slot.id,
+      started_at: startedAt,
+      value: null,
+    })
+    await loadAllWeekSummaries()
+    catchUpData.value.slots = catchUpData.value.slots.filter((s) => s.id !== slot.id)
+    if (catchUpData.value.slots.length === 0) {
+      isCatchUpModalOpen.value = false
+    }
+  } catch (e) {
+    alert('Fehler beim Nachtragen.')
+  } finally {
+    isSavingCatchUp.value = false
+  }
+}
 
 // Form Handlers
 function openAddModal() {

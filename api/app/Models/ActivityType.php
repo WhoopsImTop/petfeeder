@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ActivityType extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'household_id', 'name', 'type', 'icon', 'is_fast_action'
     ];

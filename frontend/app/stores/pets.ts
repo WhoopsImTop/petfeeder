@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useRuntimeConfig } from '#imports'
 import { useAuthStore } from './auth'
 
 export const usePetStore = defineStore('pets', () => {
@@ -12,13 +11,9 @@ export const usePetStore = defineStore('pets', () => {
     if (!householdId) return
     isLoading.value = true
     try {
-      const config = useRuntimeConfig()
-      const data = await $fetch(`/households/${householdId}/pets`, {
-        baseURL: config.public.apiBase as string,
-        headers: authStore.baseHeaders
-      })
+      const data = await authStore.apiFetch(`/households/${householdId}/pets`)
       pets.value = data as any[]
-    } catch(e) {
+    } catch (e) {
       console.error('Failed to fetch pets', e)
     } finally {
       isLoading.value = false
@@ -26,53 +21,35 @@ export const usePetStore = defineStore('pets', () => {
   }
 
   async function addPet(householdId: number, petData: any) {
-    const config = useRuntimeConfig()
-    const isForm = typeof FormData !== 'undefined' && petData instanceof FormData
-    const headers: Record<string, string> = { ...authStore.baseHeaders }
-    if (isForm) delete headers['Content-Type']
-    const data = await $fetch(`/households/${householdId}/pets`, {
-      baseURL: config.public.apiBase as string,
+    const data = await authStore.apiFetch(`/households/${householdId}/pets`, {
       method: 'POST',
       body: petData,
-      headers,
     })
     await fetchPets(householdId)
     return data
   }
 
   async function updatePet(householdId: number, petId: number, petData: any) {
-    const config = useRuntimeConfig()
     const isForm = typeof FormData !== 'undefined' && petData instanceof FormData
-    const headers: Record<string, string> = { ...authStore.baseHeaders }
-    if (isForm) delete headers['Content-Type']
-    // POST für multipart: PUT + Datei scheitert oft (Server/Proxy/PHP).
-    const data = await $fetch(`/households/${householdId}/pets/${petId}`, {
-      baseURL: config.public.apiBase as string,
+    const data = await authStore.apiFetch(`/households/${householdId}/pets/${petId}`, {
       method: isForm ? 'POST' : 'PUT',
       body: petData,
-      headers,
     })
     await fetchPets(householdId)
     return data
   }
 
   async function deletePet(householdId: number, petId: number) {
-    const config = useRuntimeConfig()
-    await $fetch(`/households/${householdId}/pets/${petId}`, {
-      baseURL: config.public.apiBase as string,
+    await authStore.apiFetch(`/households/${householdId}/pets/${petId}`, {
       method: 'DELETE',
-      headers: authStore.baseHeaders
     })
     await fetchPets(householdId)
   }
 
   async function logActivity(householdId: number, activityData: { pet_id: number, activity_type_id: number, [key: string]: any }) {
-    const config = useRuntimeConfig()
-    return await $fetch(`/households/${householdId}/activity-logs`, {
-      baseURL: config.public.apiBase as string,
+    return await authStore.apiFetch(`/households/${householdId}/activity-logs`, {
       method: 'POST',
       body: activityData,
-      headers: authStore.baseHeaders
     })
   }
 
@@ -83,6 +60,6 @@ export const usePetStore = defineStore('pets', () => {
     addPet,
     updatePet,
     deletePet,
-    logActivity
+    logActivity,
   }
 })

@@ -177,6 +177,76 @@
             </div>
           </section>
 
+          <!-- Feeder Webhook -->
+          <section v-if="isAdmin">
+            <h3 class="text-lg font-bold mb-3 px-1">Futterautomat</h3>
+            <div class="bg-white p-5 rounded-3xl shadow-soft space-y-4">
+              <div v-if="feederConfigLoading" class="text-sm text-slate-400 font-medium">Lade Konfiguration...</div>
+              <template v-else-if="feederConfig">
+                <label class="flex items-center justify-between gap-3">
+                  <span class="font-bold text-slate-700">Webhook aktiv</span>
+                  <input
+                    v-model="feederEnabled"
+                    type="checkbox"
+                    class="w-5 h-5 rounded"
+                    @change="saveFeederConfig"
+                  >
+                </label>
+
+                <div v-if="feederConfig.webhook_url">
+                  <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Webhook-URL</span>
+                  <div class="flex gap-2">
+                    <input
+                      :value="feederConfig.webhook_url"
+                      readonly
+                      class="flex-1 px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-xl text-xs font-mono"
+                    >
+                    <button
+                      type="button"
+                      class="px-3 py-2 bg-primary-50 text-primary-600 font-bold rounded-xl text-sm shrink-0"
+                      @click="copyWebhookUrl"
+                    >
+                      Kopieren
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  class="w-full py-3 bg-slate-100 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-200 transition-colors"
+                  @click="regenerateWebhookToken"
+                >
+                  Token neu generieren
+                </button>
+
+                <div class="space-y-3 pt-2 border-t border-slate-100">
+                  <p class="text-xs text-slate-500 font-medium">Aktivitätstyp-Zuordnung</p>
+                  <div>
+                    <label class="text-xs font-bold text-slate-400 block mb-1">open</label>
+                    <select v-model="feederOpenTypeId" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm" @change="saveFeederConfig">
+                      <option :value="null">—</option>
+                      <option v-for="t in activityTypes" :key="'open'+t.id" :value="t.id">{{ t.icon }} {{ t.name }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold text-slate-400 block mb-1">stay_closed</label>
+                    <select v-model="feederStayClosedTypeId" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm" @change="saveFeederConfig">
+                      <option :value="null">—</option>
+                      <option v-for="t in activityTypes" :key="'sc'+t.id" :value="t.id">{{ t.icon }} {{ t.name }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold text-slate-400 block mb-1">none</label>
+                    <select v-model="feederNoneTypeId" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm" @change="saveFeederConfig">
+                      <option :value="null">—</option>
+                      <option v-for="t in activityTypes" :key="'none'+t.id" :value="t.id">{{ t.icon }} {{ t.name }}</option>
+                    </select>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </section>
+
           <section class="pt-8">
             <button @click="handleLogout" class="w-full py-4 text-red-500 font-bold bg-red-50 hover:bg-red-100 transition-colors rounded-3xl">
               Abmelden
@@ -195,12 +265,15 @@ import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useHouseholdStore } from '~/stores/household'
+import { useFeederStore } from '~/stores/feeder'
+import { useActivityTypeStore } from '~/stores/activityTypes'
 import { useRuntimeConfig } from '#imports'
 import { formatDate } from '~/utils/formatters'
 import { 
   HomeIcon, 
   ListBulletIcon,
   ChartBarIcon,
+  CameraIcon,
   UserIcon,
   XMarkIcon,
   PlusIcon
@@ -210,6 +283,8 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const householdStore = useHouseholdStore()
+const feederStore = useFeederStore()
+const activityTypeStore = useActivityTypeStore()
 
 const isSettingsOpen = ref(false)
 
@@ -222,7 +297,8 @@ const userAvatar = computed(() => authStore.user?.avatar || null)
 const tabs = [
   { name: 'Dashboard', to: '/', icon: HomeIcon },
   { name: 'Tiere', to: '/pets', icon: ListBulletIcon },
-  { name: 'Aktivitäten', to: '/activities', icon: ChartBarIcon }
+  { name: 'Aktivitäten', to: '/activities', icon: ChartBarIcon },
+  { name: 'Feeder', to: '/feeder', icon: CameraIcon },
 ]
 
 const isRouteActive = (path) => {
@@ -236,17 +312,83 @@ const openSettings = () => {
   if (!householdStore.activeHouseholdDetails && householdStore.activeHousehold) {
     householdStore.fetchActiveHouseholdDetails()
   }
+  if (householdStore.activeHousehold?.id) {
+    loadFeederSettings()
+  }
 }
 
 // Watch household changes if settings are open
 watch(() => householdStore.activeHousehold, () => {
   if (isSettingsOpen.value) {
     householdStore.fetchActiveHouseholdDetails()
+    loadFeederSettings()
   }
 })
 
-const handleLogout = () => {
-  authStore.logout()
+const feederConfig = computed(() => feederStore.config)
+const feederConfigLoading = computed(() => feederStore.isConfigLoading)
+const activityTypes = computed(() => activityTypeStore.activityTypes)
+
+const feederEnabled = ref(false)
+const feederOpenTypeId = ref(null)
+const feederStayClosedTypeId = ref(null)
+const feederNoneTypeId = ref(null)
+
+async function loadFeederSettings() {
+  const hzId = householdStore.activeHousehold?.id
+  if (!hzId || !isAdmin.value) return
+  await Promise.all([
+    feederStore.fetchConfig(hzId),
+    activityTypeStore.fetchActivityTypes(hzId),
+  ])
+  if (feederStore.config) {
+    feederEnabled.value = feederStore.config.feeder_webhook_enabled
+    feederOpenTypeId.value = feederStore.config.feeder_action_open_activity_type_id
+    feederStayClosedTypeId.value = feederStore.config.feeder_action_stay_closed_activity_type_id
+    feederNoneTypeId.value = feederStore.config.feeder_action_none_activity_type_id
+  }
+}
+
+async function saveFeederConfig() {
+  const hzId = householdStore.activeHousehold?.id
+  if (!hzId) return
+  try {
+    await feederStore.updateConfig(hzId, {
+      feeder_webhook_enabled: feederEnabled.value,
+      feeder_action_open_activity_type_id: feederOpenTypeId.value,
+      feeder_action_stay_closed_activity_type_id: feederStayClosedTypeId.value,
+      feeder_action_none_activity_type_id: feederNoneTypeId.value,
+    })
+  } catch (e) {
+    alert('Fehler beim Speichern der Feeder-Konfiguration.')
+  }
+}
+
+async function regenerateWebhookToken() {
+  if (!confirm('Webhook-Token wirklich neu generieren? Die alte URL funktioniert danach nicht mehr.')) return
+  const hzId = householdStore.activeHousehold?.id
+  if (!hzId) return
+  try {
+    await feederStore.regenerateToken(hzId)
+    alert('Neuer Token wurde erzeugt.')
+  } catch (e) {
+    alert('Fehler beim Generieren des Tokens.')
+  }
+}
+
+async function copyWebhookUrl() {
+  const url = feederStore.config?.webhook_url
+  if (!url) return
+  try {
+    await navigator.clipboard.writeText(url)
+    alert('Webhook-URL kopiert.')
+  } catch {
+    alert(url)
+  }
+}
+
+const handleLogout = async () => {
+  await authStore.logout()
   isSettingsOpen.value = false
   router.push('/login')
 }
@@ -361,13 +503,10 @@ async function sendSubscriptionToBackend(subscription) {
     },
     contentEncoding: ('PushManager' in window && PushManager.supportedContentEncodings) ? PushManager.supportedContentEncodings[0] : 'aesgcm'
   }
-  
-  const config = useRuntimeConfig()
-  await $fetch('/user/push-subscriptions', {
-    baseURL: config.public.apiBase,
+
+  await authStore.apiFetch('/user/push-subscriptions', {
     method: 'POST',
     body: payload,
-    headers: authStore.baseHeaders
   })
 }
 

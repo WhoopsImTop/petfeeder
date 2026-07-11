@@ -41,12 +41,9 @@ export function usePushNotifications() {
             });
       }
 
-      const config = useRuntimeConfig();
-      await $fetch('/user/push-subscriptions', {
-        baseURL: config.public.apiBase as string,
+      await authStore.apiFetch('/user/push-subscriptions', {
         method: 'POST',
-        headers: authStore.baseHeaders,
-        body: subscription
+        body: subscription,
       })
       alert("Erfolgreich für Benachrichtigungen angemeldet!")
       return true;

@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useRuntimeConfig } from '#imports'
 import { useAuthStore } from './auth'
 
 export const useActivityTypeStore = defineStore('activityTypes', () => {
@@ -12,17 +11,13 @@ export const useActivityTypeStore = defineStore('activityTypes', () => {
     if (!householdId) return
     isLoading.value = true
     try {
-      const config = useRuntimeConfig()
-      const data: any = await $fetch(`/households/${householdId}/activity-types`, {
-        baseURL: config.public.apiBase as string,
-        headers: authStore.baseHeaders
-      })
+      const data: any = await authStore.apiFetch(`/households/${householdId}/activity-types`)
       activityTypes.value = (data || []).map((a: any) => ({
         ...a,
         label: a.name,
-        color: getActivityColor(a.id)
+        color: getActivityColor(a.id),
       }))
-    } catch(e) {
+    } catch (e) {
       console.error('Failed to fetch activity types', e)
     } finally {
       isLoading.value = false
@@ -30,35 +25,26 @@ export const useActivityTypeStore = defineStore('activityTypes', () => {
   }
 
   async function createActivityType(householdId: number, typeData: any) {
-    const config = useRuntimeConfig()
-    const data = await $fetch(`/households/${householdId}/activity-types`, {
-      baseURL: config.public.apiBase as string,
+    const data = await authStore.apiFetch(`/households/${householdId}/activity-types`, {
       method: 'POST',
       body: typeData,
-      headers: authStore.baseHeaders
     })
     await fetchActivityTypes(householdId)
     return data
   }
 
   async function updateActivityType(householdId: number, id: number, typeData: any) {
-    const config = useRuntimeConfig()
-    const data = await $fetch(`/households/${householdId}/activity-types/${id}`, {
-      baseURL: config.public.apiBase as string,
+    const data = await authStore.apiFetch(`/households/${householdId}/activity-types/${id}`, {
       method: 'PUT',
       body: typeData,
-      headers: authStore.baseHeaders
     })
     await fetchActivityTypes(householdId)
     return data
   }
 
   async function deleteActivityType(householdId: number, id: number) {
-    const config = useRuntimeConfig()
-    await $fetch(`/households/${householdId}/activity-types/${id}`, {
-      baseURL: config.public.apiBase as string,
+    await authStore.apiFetch(`/households/${householdId}/activity-types/${id}`, {
       method: 'DELETE',
-      headers: authStore.baseHeaders
     })
     await fetchActivityTypes(householdId)
   }
@@ -84,6 +70,6 @@ export const useActivityTypeStore = defineStore('activityTypes', () => {
     createActivityType,
     updateActivityType,
     deleteActivityType,
-    getActivityColor
+    getActivityColor,
   }
 })

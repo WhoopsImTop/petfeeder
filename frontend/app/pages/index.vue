@@ -92,7 +92,16 @@
               </svg>
             </button>
           </div>
-          <p class="text-sm font-bold text-sand-200 mt-1">Heute, {{ taskModalData.time }}</p>
+          <p class="text-sm font-bold text-sand-200 mt-1">{{ taskModalData.timeLabel || ('Heute, ' + taskModalData.time) }}</p>
+          <div class="mt-4">
+            <label class="block text-xs font-bold text-sand-200 uppercase tracking-widest mb-2">Zeitpunkt</label>
+            <input
+              v-model="taskModalData.started_at_local"
+              type="datetime-local"
+              class="w-full bg-sand-50 border-2 border-sand-100 rounded-[20px] px-4 py-3 font-bold text-earth-900 outline-none focus:border-earth-400"
+            />
+            <p class="text-[11px] font-bold text-sand-200 mt-2">Für vergangene Tage Datum/Uhrzeit anpassen.</p>
+          </div>
           <p class="text-xs font-bold text-sand-200 mt-3 leading-relaxed">Wähle die Tiere, die dabei waren — ohne Häkchen wird kein Eintrag gespeichert.</p>
         </div>
 
@@ -508,10 +517,18 @@ async function savePet() {
 function openTaskModal(task) {
   const checkedObj = {}
   task.pets.forEach(p => { checkedObj[p.pet.id] = false })
+
+  const now = new Date()
+  const tzOffset = now.getTimezoneOffset() * 60000
+  const localNow = new Date(now - tzOffset).toISOString().slice(0, 16)
+  const timeShort = task.time || '08:00'
+  const todayYmd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   
   taskModalData.value = { 
      ...task,
-     checked: checkedObj
+     checked: checkedObj,
+     started_at_local: `${todayYmd}T${timeShort}`,
+     timeLabel: `Heute, ${timeShort}`,
   }
   isTaskModalOpen.value = true
 }
@@ -521,9 +538,12 @@ async function saveTaskExecution() {
    isSaving.value = true
    
    try {
-     const now = new Date()
-     const tzOffset = now.getTimezoneOffset() * 60000
-     const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 19).replace('T', ' ')
+     const local = taskModalData.value.started_at_local
+     if (!local) {
+       alert('Bitte Zeitpunkt wählen.')
+       return
+     }
+     const localISOTime = local.replace('T', ' ') + ':00'
 
      const selected = taskModalData.value.pets
        .filter((p) => taskModalData.value.checked[p.pet.id])

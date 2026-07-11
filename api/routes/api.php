@@ -7,11 +7,16 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ActivityBulkController;
+use App\Http\Controllers\FeederWebhookController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/refresh', [AuthController::class, 'refresh']);
 
 Route::get('/invites/{token}', [\App\Http\Controllers\HouseholdInviteController::class, 'show']);
+
+Route::post('/webhooks/feeder/{token}', [FeederWebhookController::class, 'store'])
+    ->middleware('throttle:60,1');
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -38,4 +43,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('households/{household}/activity-logs', [ActivityLogController::class, 'store']);
     Route::post('households/{household}/activity-logs/bulk', [ActivityBulkController::class, 'store']);
     Route::delete('households/{household}/activity-logs/{activityLog}', [ActivityLogController::class, 'destroy']);
+
+    Route::get('households/{household}/feeder-config', [\App\Http\Controllers\FeederConfigController::class, 'show']);
+    Route::put('households/{household}/feeder-config', [\App\Http\Controllers\FeederConfigController::class, 'update']);
+    Route::post('households/{household}/feeder-config/regenerate-token', [\App\Http\Controllers\FeederConfigController::class, 'regenerateToken']);
+    Route::get('households/{household}/feeder-events', [\App\Http\Controllers\FeederEventController::class, 'index']);
+    Route::get('households/{household}/feeder-events/{feederEvent}', [\App\Http\Controllers\FeederEventController::class, 'show']);
 });

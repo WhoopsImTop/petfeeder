@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useRuntimeConfig } from '#imports'
 import { useAuthStore } from './auth'
 
 export const useActivityStore = defineStore('activities', () => {
@@ -12,13 +11,9 @@ export const useActivityStore = defineStore('activities', () => {
     if (!householdId) return
     isLoading.value = true
     try {
-      const config = useRuntimeConfig()
-      const data: any = await $fetch(`/households/${householdId}/activity-logs`, {
-        baseURL: config.public.apiBase as string,
-        headers: authStore.baseHeaders
-      })
-      activities.value = data || [] 
-    } catch(e) {
+      const data: any = await authStore.apiFetch(`/households/${householdId}/activity-logs`)
+      activities.value = data || []
+    } catch (e) {
       console.error('Failed to fetch activities', e)
     } finally {
       isLoading.value = false
@@ -26,12 +21,9 @@ export const useActivityStore = defineStore('activities', () => {
   }
 
   async function createActivity(householdId: number, activityData: any) {
-    const config = useRuntimeConfig()
-    const data = await $fetch(`/households/${householdId}/activity-logs`, {
-      baseURL: config.public.apiBase as string,
+    const data = await authStore.apiFetch(`/households/${householdId}/activity-logs`, {
       method: 'POST',
       body: activityData,
-      headers: authStore.baseHeaders
     })
     await fetchActivities(householdId)
     return data
@@ -49,12 +41,9 @@ export const useActivityStore = defineStore('activities', () => {
       feeding_plan_slot_id?: number | null
     }
   ) {
-    const config = useRuntimeConfig()
-    const data = await $fetch(`/households/${householdId}/activity-logs/bulk`, {
-      baseURL: config.public.apiBase as string,
+    const data = await authStore.apiFetch(`/households/${householdId}/activity-logs/bulk`, {
       method: 'POST',
       body,
-      headers: authStore.baseHeaders
     })
     await fetchActivities(householdId)
     return data
@@ -62,11 +51,8 @@ export const useActivityStore = defineStore('activities', () => {
 
   async function deleteActivity(householdId: number, activityId: number) {
     if (!householdId || !activityId) return
-    const config = useRuntimeConfig()
-    await $fetch(`/households/${householdId}/activity-logs/${activityId}`, {
-      baseURL: config.public.apiBase as string,
+    await authStore.apiFetch(`/households/${householdId}/activity-logs/${activityId}`, {
       method: 'DELETE',
-      headers: authStore.baseHeaders
     })
     await fetchActivities(householdId)
   }
@@ -77,6 +63,6 @@ export const useActivityStore = defineStore('activities', () => {
     fetchActivities,
     createActivity,
     createActivitiesBulk,
-    deleteActivity
+    deleteActivity,
   }
 })

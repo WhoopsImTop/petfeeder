@@ -25,13 +25,16 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Petfeeder Update!'
   const message = data.body || 'Something new happened.'
   const icon = data.icon || '/pwa-192x192.svg'
+  const payloadData = data.data || {}
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body: message,
       icon,
+      image: payloadData.image || data.image || undefined,
       data: {
-        url: data.url || '/'
+        url: payloadData.url || data.url || '/',
+        feeder_event_id: payloadData.feeder_event_id || null,
       }
     })
   )
