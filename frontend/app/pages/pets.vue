@@ -46,7 +46,12 @@
               class="flex items-center gap-3 bg-app-cream/60 rounded-[18px] px-3 py-2 text-sm"
             >
               <span class="text-lg shrink-0">{{ slot.activity_type?.icon || '🍖' }}</span>
-              <span class="font-extrabold text-app-brown">{{ slot.title || slot.activity_type?.name }}</span>
+              <div class="min-w-0">
+                <p class="font-extrabold text-app-brown truncate">{{ slot.title || slot.activity_type?.name }}</p>
+                <p class="text-[11px] font-bold text-app-muted">
+                  Benachrichtigung: {{ weekdayShort(slot.weekdays) || 'keine Tage' }}
+                </p>
+              </div>
               <span class="text-app-muted font-bold text-xs ml-auto">{{ formatSlotTime(slot.time) }}</span>
             </li>
           </ul>
@@ -142,7 +147,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-app-muted uppercase tracking-widest mb-2 ml-1">Geburtsdatum</label>
-            <input v-model="petForm.birth_date" type="date" class="w-full bg-app-cream/50 border-2 border-app-tan/30 rounded-[20px] px-5 py-4 font-bold text-app-brown outline-none focus:border-app-accent">
+            <input v-model="petForm.birth_date" type="date" class="w-full ios-date-fix bg-app-cream/50 border-2 border-app-tan/30 rounded-[20px] px-5 py-4 font-bold text-app-brown outline-none focus:border-app-accent">
           </div>
           <div>
             <label class="block text-xs font-bold text-app-muted uppercase tracking-widest mb-2 ml-1">Gewicht (kg)</label>
@@ -289,14 +294,20 @@ function formatSlotTime(t) {
 
 function weekdayShort(days) {
   if (!days?.length) return ''
-  return days.map((d) => weekdayLabels[d] || d).join(' ')
+  const normalized = [...new Set(
+    days
+      .map((d) => Number(d))
+      .filter((d) => Number.isInteger(d) && d >= 1 && d <= 7)
+  )].sort((a, b) => a - b)
+  return normalized.map((d) => weekdayLabels[d] || d).join(' ')
 }
 
 function toggleWeekday(slot, d) {
-  const i = slot.weekdays.indexOf(d)
-  if (i >= 0) slot.weekdays.splice(i, 1)
-  else slot.weekdays.push(d)
-  slot.weekdays.sort((a, b) => a - b)
+  const current = (slot.weekdays || []).map((x) => Number(x))
+  const i = current.indexOf(Number(d))
+  if (i >= 0) current.splice(i, 1)
+  else current.push(Number(d))
+  slot.weekdays = [...new Set(current)].sort((a, b) => a - b)
 }
 
 function addSlotRow() {
@@ -449,8 +460,11 @@ async function savePet() {
       await petStore.fetchPets(householdStore.activeHousehold.id)
     }
     closeModal()
-  } catch {
-    alert('Fehler beim Speichern.')
+  } catch (e) {
+    const details = e?.data?.errors
+      ? Object.values(e.data.errors).flat().join('\n')
+      : (e?.data?.message || e?.message || 'Fehler beim Speichern.')
+    alert(details)
   } finally {
     isSaving.value = false
   }

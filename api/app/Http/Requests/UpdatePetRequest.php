@@ -27,7 +27,12 @@ class UpdatePetRequest extends FormRequest
         $householdId = (int) $this->route('household');
 
         $avatar = $this->hasFile('avatar')
-            ? ['avatar' => ['nullable', 'image', 'max:4096']]
+            ? ['avatar' => [
+                'nullable',
+                'file',
+                'max:12288',
+                'mimetypes:image/jpeg,image/png,image/webp,image/heic,image/heif,image/heic-sequence,image/heif-sequence',
+            ]]
             : ['avatar' => ['nullable', 'string', 'max:2048']];
 
         return [

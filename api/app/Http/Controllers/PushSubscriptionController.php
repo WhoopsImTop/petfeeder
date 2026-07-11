@@ -27,4 +27,21 @@ class PushSubscriptionController extends Controller
 
         return response()->json(['message' => 'Subscription created successfully.'], 201);
     }
+
+    public function destroy(Request $request)
+    {
+        $validated = $request->validate([
+            'endpoint' => 'nullable|string',
+        ]);
+
+        if (!empty($validated['endpoint'])) {
+            $hash = hash('sha256', $validated['endpoint']);
+            $request->user()->pushSubscriptions()->where('endpoint_hash', $hash)->delete();
+
+            return response()->json(['message' => 'Subscription removed successfully.']);
+        }
+
+        $request->user()->pushSubscriptions()->delete();
+        return response()->json(['message' => 'All subscriptions removed successfully.']);
+    }
 }

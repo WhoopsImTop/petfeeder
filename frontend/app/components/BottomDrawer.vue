@@ -9,10 +9,14 @@
         class="bg-white rounded-t-[40px] px-6 pt-8 w-full max-w-md shadow-2xl animate-slide-up flex flex-col relative mt-auto overscroll-contain touch-manipulation safe-drawer-pad overflow-hidden"
         :class="customDrawerClass"
         :style="{ transform: `translateY(${translateY}px)`, transition: isDragging ? 'none' : 'transform 0.3s ease-out' }"
-        @touchstart="onTouchStart"
-        @mousedown="onTouchStart"
       >
-        <div class="drag-handle w-16 h-2 bg-sand-100 rounded-full mx-auto shrink-0 mb-6 cursor-grab active:cursor-grabbing hover:bg-sand-200 transition-colors" />
+        <div
+          class="w-full flex justify-center shrink-0 mb-4 pb-2 cursor-grab active:cursor-grabbing select-none"
+          @touchstart="onTouchStart"
+          @mousedown="onTouchStart"
+        >
+          <div class="drag-handle w-16 h-2 bg-sand-100 rounded-full hover:bg-sand-200 transition-colors" />
+        </div>
 
         <slot />
       </div>
@@ -40,12 +44,9 @@ function close() {
   emit('closed')
 }
 
-// Drag-to-close nur am Griff – verhindert Konflikte mit Formularen und Scroll-Bereichen auf dem Handy
 function onTouchStart(e) {
-  if (!e.target.closest('.drag-handle')) {
-    return
-  }
-  
+  if (e.cancelable) e.preventDefault()
+
   isDragging.value = true
   startY.value = e.touches ? e.touches[0].clientY : e.clientY
   currentY.value = startY.value
@@ -94,6 +95,10 @@ watch(() => props.modelValue, (val) => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('mousemove', onTouchMove)
+  window.removeEventListener('touchmove', onTouchMove)
+  window.removeEventListener('mouseup', onTouchEnd)
+  window.removeEventListener('touchend', onTouchEnd)
   document.body.style.overflow = ''
 })
 </script>

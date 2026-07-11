@@ -37,3 +37,11 @@ html, body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* iOS Safari date inputs can keep an oversized intrinsic width in flex/grid. */
+.ios-date-fix {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}

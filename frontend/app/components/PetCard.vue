@@ -35,7 +35,7 @@
     </div>
     
     <!-- Last Action / Status -->
-    <div v-if="lastActionText" class="bg-leaf-400 text-white rounded-full py-3 px-4 flex items-center justify-center gap-2 font-bold text-sm mb-4 shadow-sm">
+    <div v-if="lastActionText" class="bg-leaf-400 text-white rounded-full py-2 px-4 flex items-center justify-center gap-2 font-bold text-xs mb-4 shadow-sm">
        {{ lastActionText }}
     </div>
 
